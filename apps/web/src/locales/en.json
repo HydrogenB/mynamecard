@@ -1,0 +1,126 @@
+{
+  "app": {
+    "name": "Smart Name Card"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "pricing": "Pricing",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "home": {
+    "title": "Create and Share Digital Business Cards",
+    "subtitle": "Create your digital business card and share it via QR code",
+    "cta": "Get Started",
+    "features": {
+      "title": "Features",
+      "free": "One Free Business Card",
+      "qr": "QR Code Generation",
+      "share": "Easy Sharing",
+      "manage": "Manage Your Cards",
+      "mobile": "Mobile Optimized"
+    }
+  },
+  "login": {
+    "title": "Sign In",
+    "google": "Sign in with Google",
+    "or": "or",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "register": "Don't have an account? Register"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "empty": "You don't have any cards yet",
+    "create": "Create Card",
+    "cards": "Your Cards",
+    "quota": {
+      "free": "Free Plan: {{used}}/{{total}} cards used",
+      "upgrade": "Need more cards? Upgrade your plan"
+    }
+  },
+  "card": {
+    "create": "Create Card",
+    "edit": "Edit Card",
+    "delete": "Delete Card",
+    "save": "Save Card",
+    "preview": "Preview",
+    "download": "Save Contact",
+    "share": "Share",
+    "qr": "Download QR Code",
+    "fields": {
+      "fullName": "Full Name",
+      "title": "Job Title",
+      "company": "Company",
+      "phone": "Phone Number",
+      "email": "Email",
+      "website": "Website",
+      "address": "Address",
+      "bio": "Bio",
+      "social": "Social Media"
+    },
+    "errors": {
+      "required": "This field is required",
+      "email": "Please enter a valid email",
+      "url": "Please enter a valid URL",
+      "phone": "Please enter a valid phone number"
+    }
+  },
+  "pricing": {
+    "title": "Pricing Plans",
+    "free": {
+      "name": "Free",
+      "price": "$0/month",
+      "features": [
+        "1 Digital Business Card",
+        "Basic Analytics",
+        "QR Code Generation"
+      ],
+      "cta": "Current Plan"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "$4.99/month",
+      "features": [
+        "5 Digital Business Cards",
+        "Advanced Analytics",
+        "Custom QR Codes",
+        "Priority Support"
+      ],
+      "cta": "Upgrade to Pro"
+    },
+    "business": {
+      "name": "Business",
+      "price": "$9.99/month",
+      "features": [
+        "Unlimited Digital Business Cards",
+        "Team Management",
+        "White Label QR Codes",
+        "API Access",
+        "Dedicated Support"
+      ],
+      "cta": "Upgrade to Business"
+    }
+  },
+  "public": {
+    "loading": "Loading card...",
+    "notFound": "Card not found",
+    "deleted": "This card has been deleted",
+    "saveContact": "Save Contact"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "confirm": "Are you sure?",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

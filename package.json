@@ -1,0 +1,25 @@
+{
+  "name": "smart-namecard",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w apps/web",
+    "dev:functions": "npm run dev -w apps/functions",
+    "build:web": "npm run build -w apps/web",
+    "build:functions": "npm run build -w apps/functions",
+    "lint": "eslint .",
+    "test": "npm run test:web && npm run test:functions",
+    "test:web": "npm run test -w apps/web",
+    "test:functions": "npm run test -w apps/functions",
+    "emulators": "firebase emulators:start",
+    "deploy": "firebase deploy"
+  },
+  "devDependencies": {
+    "eslint": "^8.52.0",
+    "firebase-tools": "^12.7.0",
+    "typescript": "^5.2.2"
+  }
+}
