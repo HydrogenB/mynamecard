@@ -8,18 +8,20 @@
   "scripts": {
     "dev:web": "npm run dev -w apps/web",
     "dev:functions": "npm run dev -w apps/functions",
+    "build": "npm run build:web && npm run build:functions",
     "build:web": "npm run build -w apps/web",
-    "build:functions": "npm run build -w apps/functions",
+    "build:functions": "echo \"Add function build command here\"",
     "lint": "eslint .",
     "test": "npm run test:web && npm run test:functions",
     "test:web": "npm run test -w apps/web",
     "test:functions": "npm run test -w apps/functions",
     "emulators": "firebase emulators:start",
-    "deploy": "firebase deploy"
+    "deploy": "firebase deploy",
+    "dev": "npm run dev -w apps/web"
   },
   "devDependencies": {
     "eslint": "^8.52.0",
     "firebase-tools": "^12.7.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.0.0"
   }
 }
