@@ -1,42 +1,54 @@
-import { HTMLAttributes } from 'react';
+import React from 'react';
 
 export type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg';
+export type SpinnerColor = 'primary' | 'white' | 'secondary';
 
-export interface SpinnerProps extends HTMLAttributes<HTMLDivElement> {
+export interface SpinnerProps {
   size?: SpinnerSize;
-  color?: string;
+  color?: SpinnerColor;
+  className?: string;
 }
 
-const Spinner = ({ 
-  size = 'md', 
+const sizeStyles: Record<SpinnerSize, string> = {
+  xs: 'h-3 w-3',
+  sm: 'h-4 w-4',
+  md: 'h-6 w-6',
+  lg: 'h-8 w-8',
+};
+
+const colorStyles: Record<SpinnerColor, string> = {
+  primary: 'text-primary-500',
+  white: 'text-white',
+  secondary: 'text-secondary-500',
+};
+
+const Spinner: React.FC<SpinnerProps> = ({
+  size = 'md',
   color = 'primary',
   className = '',
-  ...props 
-}: SpinnerProps) => {
-  // Size specific classes
-  const sizeClasses = {
-    xs: 'w-3 h-3 border-2',
-    sm: 'w-4 h-4 border-2',
-    md: 'w-8 h-8 border-2',
-    lg: 'w-12 h-12 border-3',
-  };
-  
-  // Color specific classes
-  const colorClasses = {
-    primary: 'border-t-primary-500 border-r-primary-500 border-b-primary-200 border-l-primary-200',
-    white: 'border-t-white border-r-white border-b-white/30 border-l-white/30',
-    secondary: 'border-t-secondary-600 border-r-secondary-600 border-b-secondary-300 border-l-secondary-300',
-  };
-  
-  const colorClass = colorClasses[color as keyof typeof colorClasses] || colorClasses.primary;
-  
+}) => {
   return (
-    <div 
-      className={`inline-block ${sizeClasses[size]} rounded-full ${colorClass} animate-spin ${className}`}
-      role="status"
-      aria-label="loading"
-      {...props}
-    />
+    <svg 
+      className={`animate-spin ${sizeStyles[size]} ${colorStyles[color]} ${className}`} 
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24"
+      data-testid="spinner"
+    >
+      <circle 
+        className="opacity-25" 
+        cx="12" 
+        cy="12" 
+        r="10" 
+        stroke="currentColor" 
+        strokeWidth="4"
+      />
+      <path 
+        className="opacity-75" 
+        fill="currentColor" 
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
   );
 };
 

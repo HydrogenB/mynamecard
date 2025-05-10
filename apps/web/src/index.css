@@ -4,13 +4,18 @@
 
 @layer base {
   html {
-    @apply text-secondary-900;
+    @apply antialiased;
   }
+  
   body {
-    @apply bg-secondary-50;
+    @apply bg-slate-50 text-slate-900;
   }
 }
 
-/* Remove the button classes as they're now in the design system */
-/* Remove the card classes as they're now in the design system */
-/* Remove the form input classes as they're now in the design system */
+@layer components {
+  /* Additional component styles can go here */
+}
+
+@layer utilities {
+  /* Custom utilities can go here */
+}

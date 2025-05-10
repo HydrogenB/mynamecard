@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App';
+import App from './App.tsx';
 import './index.css';
-import { AuthProvider } from './contexts/AuthContext';
-import { I18nProvider } from './contexts/I18nContext';
+import { AuthProvider } from './hooks/useAuth';
+import { I18nProvider } from './hooks/useI18n';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <I18nProvider>
@@ -15,5 +15,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </AuthProvider>
       </I18nProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

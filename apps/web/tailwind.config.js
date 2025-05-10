@@ -8,6 +8,7 @@ export default {
     extend: {
       colors: {
         primary: {
+          DEFAULT: '#0ea5e9',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -20,6 +21,7 @@ export default {
           900: '#0c4a6e',
         },
         secondary: {
+          DEFAULT: '#64748b',
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -30,23 +32,11 @@ export default {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-        }
-      },
-      maxWidth: {
-        'card': '420px',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
       },
-      animation: {
-        'shimmer': 'shimmer 1.5s infinite linear',
-      },
-      keyframes: {
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-      }
     },
   },
   plugins: [],

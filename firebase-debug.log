@@ -1,0 +1,25 @@
+[debug] [2025-05-10T09:01:17.663Z] ----------------------------------------------------------------------
+[debug] [2025-05-10T09:01:17.667Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Jirad-PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2025-05-10T09:01:17.668Z] CLI Version:   14.3.1
+[debug] [2025-05-10T09:01:17.668Z] Platform:      win32
+[debug] [2025-05-10T09:01:17.668Z] Node Version:  v22.14.0
+[debug] [2025-05-10T09:01:17.669Z] Time:          Sat May 10 2025 16:01:17 GMT+0700 (Indochina Time)
+[debug] [2025-05-10T09:01:17.670Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-05-10T09:01:17.678Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T09:01:17.679Z] > authorizing via signed-in user (jirad.bird@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Jirad-python\mynamecard
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+

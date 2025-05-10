@@ -1,17 +1,13 @@
-// Foundation exports
-export * from './foundations/colors';
-export * from './foundations/typography';
-export * from './foundations/spacing';
+// Button component
+export { default as Button } from './components/Button';
+export type { ButtonProps, ButtonVariant, ButtonSize } from './components/Button';
 
-// Component exports
-export * from './components/Button';
-export * from './components/Card';
-export * from './components/Input';
-export * from './components/Text';
-export * from './components/Spinner';
-export * from './components/QRCode';
-export * from './components/Container';
-export * from './components/Badge';
-export * from './components/Divider';
-export * from './components/IconButton';
-export * from './components/LanguageSwitcher';
+// Card component
+export { default as Card } from './components/Card';
+export type { CardProps, CardVariant, CardPadding } from './components/Card';
+
+// Spinner component
+export { default as Spinner } from './components/Spinner';
+export type { SpinnerProps, SpinnerSize, SpinnerColor } from './components/Spinner';
+
+// Add more component exports as they are created
