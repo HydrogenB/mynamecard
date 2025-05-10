@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "Smart Name Card",
+    "tagline": "Your digital identity, simplified."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "createBtn": "Create New Card",
+    "editBtn": "Edit",
+    "deleteBtn": "Delete",
+    "shareBtn": "Share",
+    "cardCount": "{{count}} of 1 free card used",
+    "emptyState": "You don't have any cards yet. Create your first card!",
+    "deleteConfirm": "Are you sure you want to delete this card?"
+  },
+  "cardEditor": {
+    "createTitle": "Create New Card",
+    "editTitle": "Edit Card",
+    "personalInfo": "Personal Information",
+    "contactInfo": "Contact Information",
+    "address": "Address",
+    "additional": "Additional Information",
+    "appearance": "Appearance",
+    "saveBtn": "Save Card",
+    "cancelBtn": "Cancel",
+    "photoUpload": "Upload Photo",
+    "photoRemove": "Remove Photo",
+    "slugLabel": "Card URL",
+    "slugHelper": "This will be your personalized link. Only letters, numbers, and hyphens."
+  },
+  "form": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "organization": "Organization",
+    "title": "Job Title",
+    "email": "Email",
+    "phone": "Phone",
+    "website": "Website",
+    "street": "Street Address",
+    "city": "City",
+    "state": "State/Province",
+    "postalCode": "Postal Code",
+    "country": "Country",
+    "notes": "Notes",
+    "theme": "Theme"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "url": "Please enter a valid URL",
+    "minLength": "This field must be at least {{min}} characters",
+    "maxLength": "This field must be at most {{max}} characters",
+    "pattern": "Invalid format"
+  },
+  "publicCard": {
+    "saveContact": "Save Contact",
+    "copyLink": "Copy Link",
+    "downloadVcf": "Download vCard",
+    "shareQr": "Share QR",
+    "downloadQr": "Download QR Code",
+    "copied": "Copied to clipboard!",
+    "contactInfo": "Contact Information",
+    "organization": "Organization",
+    "address": "Address"
+  },
+  "pricing": {
+    "title": "Upgrade to Pro",
+    "description": "You've reached the limit of 1 card on the free plan.",
+    "features": [
+      "Unlimited cards",
+      "Custom domains",
+      "Analytics dashboard",
+      "Priority support"
+    ],
+    "monthly": "$9.99/month",
+    "yearly": "$99/year",
+    "cta": "Upgrade Now",
+    "dismiss": "Maybe Later"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "The card you're looking for doesn't exist.",
+    "serverError": "Server error. Please try again later."
+  }
+}
