@@ -1,6 +1,12 @@
 import { useI18n } from '../hooks/useI18n';
 import { useAuth } from '../hooks/useAuth';
-import { Link } from 'react-router-dom';
+import { 
+  Container, 
+  Card, 
+  Button, 
+  Text,
+  Badge 
+} from '../design-system';
 
 export default function PricingPage() {
   const { t } = useI18n();
@@ -25,34 +31,35 @@ export default function PricingPage() {
   ];
   
   return (
-    <div className="max-w-screen-lg mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold text-center mb-12">
+    <Container py={12}>
+      <Text variant="h2" as="h1" align="center" className="mb-12">
         {t('pricing.title')}
-      </h1>
+      </Text>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {plans.map((plan) => (
-          <div 
+          <Card 
             key={plan.id} 
-            className={`relative rounded-lg p-6 ${
-              plan.current 
-                ? 'bg-primary-50 border border-primary-200' 
-                : 'bg-white border border-secondary-200'
-            }`}
+            variant={plan.current ? 'elevated' : 'outline'}
+            className={plan.current ? 'bg-primary-50 border border-primary-200' : ''}
+            padding="lg"
           >
             {plan.badge && (
-              <span className="absolute -top-3 right-4 bg-primary-500 text-white text-xs px-3 py-1 rounded-full">
+              <Badge 
+                variant="primary" 
+                className="absolute -top-3 right-4"
+              >
                 {plan.badge}
-              </span>
+              </Badge>
             )}
             
-            <h2 className="text-xl font-bold mb-2">
+            <Text variant="h3" as="h2" className="mb-2">
               {t(`pricing.${plan.id}.name`)}
-            </h2>
+            </Text>
             
-            <div className="text-2xl font-bold mb-6">
+            <Text variant="h2" as="div" className="mb-6">
               {t(`pricing.${plan.id}.price`)}
-            </div>
+            </Text>
             
             <ul className="mb-8 space-y-3">
               {/* @ts-ignore - Dynamic key access */}
@@ -64,27 +71,29 @@ export default function PricingPage() {
               ))}
             </ul>
             
-            <button 
-              className={`w-full py-2 rounded-md font-medium ${
-                plan.current 
-                  ? 'bg-secondary-200 text-secondary-700 cursor-default' 
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
+            <Button 
+              variant={plan.current ? 'secondary' : 'primary'}
+              fullWidth
               disabled={plan.current}
             >
               {t(`pricing.${plan.id}.cta`)}
-            </button>
-          </div>
+            </Button>
+          </Card>
         ))}
       </div>
       
-      <div className="text-center mt-12">
-        {!user && (
-          <Link to="/login" className="btn-primary px-6 py-3">
+      {!user && (
+        <div className="text-center mt-12">
+          <Button
+            variant="primary"
+            size="lg"
+            as="link"
+            to="/login"
+          >
             {t('nav.login')} {t('home.cta')}
-          </Link>
-        )}
-      </div>
-    </div>
+          </Button>
+        </div>
+      )}
+    </Container>
   );
 }
