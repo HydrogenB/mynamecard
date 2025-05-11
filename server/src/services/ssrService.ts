@@ -19,6 +19,7 @@ export interface CardData {
   notes?: string;
   theme?: string;
   slug?: string;
+  active?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +27,24 @@ export interface CardData {
 export function renderCardHTML(card: CardData, slug?: string): string {
   // Use card.slug as fallback if slug parameter is not provided
   const cardSlug = slug || card.slug || '';
+  
+  // Don't render inactive cards - redirect to homepage
+  if (card.active === false) {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta http-equiv="refresh" content="0;url=/" />
+          <title>Redirecting...</title>
+        </head>
+        <body>
+          <p>This card is not active. Redirecting to homepage...</p>
+          <script>window.location.href = "/";</script>
+        </body>
+      </html>
+    `;
+  }
   
   // Generate Open Graph tags for SEO
   const ogTags = `

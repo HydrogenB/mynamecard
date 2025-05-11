@@ -41,10 +41,16 @@ const PublicCard: React.FC = () => {
           return;
         }
         
-        // Get the card from Firestore database
-        const result = await databaseService.getCardBySlug(slug);
+        // Get the card from Firestore database - use public card method
+        const result = await databaseService.getPublicCardBySlug(slug);
         
         if (result) {
+          // Only display active cards
+          if (!result.active) {
+            setError(true);
+            return;
+          }
+          
           // Ensure theme is defined (use blue as default if undefined)
           const cardWithTheme = {
             ...result,

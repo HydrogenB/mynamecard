@@ -15,11 +15,13 @@ interface UserData {
   photoURL: string | null;
   plan: 'free' | 'pro';
   cardLimit: number;
+  cardsCreated: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const COLLECTION_NAME = 'users';
+const DEFAULT_CARD_LIMIT = 2; // Default limit of 2 cards per user
 
 /**
  * User service for handling user data in Firestore
@@ -37,7 +39,8 @@ export const userService = {
       displayName: user.displayName || '',
       photoURL: user.photoURL || '',
       plan: 'free' as const,
-      cardLimit: 1, // Free users can have 1 card
+      cardLimit: DEFAULT_CARD_LIMIT, // Free users can have 2 cards by default
+      cardsCreated: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -104,6 +107,80 @@ export const userService = {
       return true;
     } catch (error) {
       console.error('Error upgrading user to pro:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Check if user can create more cards
+   */
+  async canCreateCard(uid: string): Promise<boolean> {
+    const userProfile = await this.getUserProfile(uid);
+    
+    if (!userProfile) {
+      return false;
+    }
+    
+    return userProfile.cardsCreated < userProfile.cardLimit;
+  },
+  
+  /**
+   * Increment the cardsCreated count when a user creates a new card
+   */
+  async incrementCardsCreated(uid: string): Promise<boolean> {
+    const userRef = doc(firestore, COLLECTION_NAME, uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return false;
+    }
+    
+    const userData = userDoc.data();
+    
+    await updateDoc(userRef, {
+      cardsCreated: (userData.cardsCreated || 0) + 1,
+      updatedAt: serverTimestamp()
+    });
+    
+    return true;
+  },
+  
+  /**
+   * Decrement the cardsCreated count when a user deletes a card
+   */
+  async decrementCardsCreated(uid: string): Promise<boolean> {
+    const userRef = doc(firestore, COLLECTION_NAME, uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return false;
+    }
+    
+    const userData = userDoc.data();
+    const currentCount = userData.cardsCreated || 0;
+    
+    await updateDoc(userRef, {
+      cardsCreated: Math.max(0, currentCount - 1), // Ensure we don't go below 0
+      updatedAt: serverTimestamp()
+    });
+    
+    return true;
+  },
+  
+  /**
+   * Update user card limit (admin function)
+   */
+  async updateCardLimit(uid: string, newLimit: number): Promise<boolean> {
+    const userRef = doc(firestore, COLLECTION_NAME, uid);
+    
+    try {
+      await updateDoc(userRef, {
+        cardLimit: newLimit,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating card limit:', error);
       return false;
     }
   }

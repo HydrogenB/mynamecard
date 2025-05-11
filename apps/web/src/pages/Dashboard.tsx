@@ -8,16 +8,20 @@ import QRModal from '../components/QRModal';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/databaseService';
 import realtimeDbService from '../services/realtimeDbService';
+import userService from '../services/userService';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showPricing, setShowPricing] = useState(false);
-  const [showQR, setShowQR] = useState<Card | null>(null);  const [cards, setCards] = useState<Card[]>([]);
+  const [showQR, setShowQR] = useState<Card | null>(null);
+  const [cards, setCards] = useState<Card[]>([]);
   const [cardCount, setCardCount] = useState(0);
+  const [cardLimit, setCardLimit] = useState(2); // Default limit
   const [loading, setLoading] = useState(true);
   const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
+  
   // Load cards from Firestore
   useEffect(() => {
     const loadCards = async () => {
@@ -32,6 +36,12 @@ const Dashboard: React.FC = () => {
         const count = await databaseService.getCardCount();
         setCards(fetchedCards);
         setCardCount(count);
+        
+        // Get user profile to check card limit
+        const userProfile = await userService.getUserProfile(user.uid);
+        if (userProfile) {
+          setCardLimit(userProfile.cardLimit);
+        }
         
         // Load card statistics
         const stats: Record<string, {views: number, downloads: number, shares: number}> = {};
@@ -61,13 +71,13 @@ const Dashboard: React.FC = () => {
   
   const handleCreateCard = () => {
     // Check if user can create more cards
-    const maxCards = user && user.photoURL !== null ? 5 : 1; // Pro users can have 5 cards
-    if (cardCount < maxCards) {
+    if (cardCount < cardLimit) {
       navigate('/create');
     } else {
       setShowPricing(true);
     }
   };
+  
   const handleEditCard = (id: string | number) => {
     navigate(`/edit/${id}`);
   };
@@ -82,6 +92,23 @@ const Dashboard: React.FC = () => {
       }
     }
   };
+  
+  const handleToggleActive = async (card: Card) => {
+    if (!card.id) return;
+    
+    const newActiveStatus = !card.active;
+    const success = await databaseService.toggleCardActive(card.id, newActiveStatus);
+    
+    if (success) {
+      // Update local card state
+      setCards(prevCards => 
+        prevCards.map(c => 
+          c.id === card.id ? { ...c, active: newActiveStatus } : c
+        )
+      );
+    }
+  };
+  
   const handleShare = async (card: Card) => {
     setShowQR(card);
     
@@ -110,51 +137,33 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
-      </div>      <div className="mb-4 flex justify-between items-center">
+      </div>
+      
+      <div className="mb-4 flex justify-between items-center">
         <p className="text-sm text-gray-600">
-          {t('dashboard.cardCount', { count: cardCount })}
+          {t('dashboard.cardCount', { count: cardCount })} / {cardLimit}
         </p>
         <button
           onClick={handleCreateCard}
-          className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition"
+          className={`bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition ${
+            cardCount >= cardLimit ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+          disabled={cardCount >= cardLimit}
         >
           {t('dashboard.createBtn')}
-        </button>      </div>      {loading ? (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="space-y-4">
-            {[1, 2].map(i => (
-              <div key={i} className="animate-pulse">
-                <div className="flex items-center mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 mr-3"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-36"></div>
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
-                  </div>
-                </div>
-                <div className="space-y-2 mb-3">
-                  <div className="h-3 bg-gray-200 rounded w-48"></div>
-                  <div className="h-3 bg-gray-200 rounded w-40"></div>
-                  <div className="h-3 bg-gray-200 rounded w-56"></div>
-                </div>
-                <div className="flex space-x-2">
-                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
-                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
-                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : !cards || cards.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-600">{t('dashboard.emptyState')}</p>
-        </div>
-      ) : (
+        </button>
+      </div>
+      
+      {/* ...existing loading and empty state code... */}
+      
+      {!loading && cards && cards.length > 0 && (
         <div className="space-y-4">
           {cards.map(card => (
             <div 
               key={card.id} 
-              className="bg-white rounded-lg shadow p-4 flex flex-col"
+              className={`bg-white rounded-lg shadow p-4 flex flex-col ${
+                !card.active ? 'border-l-4 border-gray-300' : ''
+              }`}
             >
               <div className="flex items-center mb-3">
                 {card.photo && (
@@ -162,11 +171,20 @@ const Dashboard: React.FC = () => {
                     <img src={card.photo} alt="Profile" className="w-full h-full object-cover" />
                   </div>
                 )}
-                <div>
+                <div className="flex-grow">
                   <h2 className="font-semibold">{card.firstName} {card.lastName}</h2>
                   <p className="text-sm text-gray-600">{card.title} @ {card.organization}</p>
                 </div>
-              </div>              <div className="text-sm text-gray-700 mb-3">
+                <div className="flex items-center ml-2">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    card.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {card.active ? t('dashboard.statusActive') : t('dashboard.statusInactive')}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="text-sm text-gray-700 mb-3">
                 <p>{card.email}</p>
                 <p>{card.phone}</p>
                 <p className="text-primary-600">
@@ -199,6 +217,16 @@ const Dashboard: React.FC = () => {
                   {t('dashboard.shareBtn')}
                 </button>
                 <button 
+                  onClick={() => handleToggleActive(card)}
+                  className={`flex-1 py-2 px-3 rounded text-sm transition ${
+                    card.active 
+                      ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800' 
+                      : 'bg-green-100 hover:bg-green-200 text-green-800'
+                  }`}
+                >
+                  {card.active ? t('dashboard.deactivateBtn') : t('dashboard.activateBtn')}
+                </button>
+                <button 
                   onClick={() => card.id && handleEditCard(card.id)}
                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded text-sm transition"
                 >
@@ -216,7 +244,15 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {showPricing && <PricingModal onClose={() => setShowPricing(false)} onContinue={() => { setShowPricing(false); navigate('/create'); }} />}
+      {showPricing && (
+        <PricingModal 
+          onClose={() => setShowPricing(false)} 
+          onContinue={() => { setShowPricing(false); navigate('/create'); }} 
+          currentLimit={cardLimit}
+          cardsCreated={cardCount}
+        />
+      )}
+      
       {showQR && <QRModal card={showQR} onClose={() => setShowQR(null)} />}
     </div>
   );

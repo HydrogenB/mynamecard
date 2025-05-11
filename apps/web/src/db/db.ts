@@ -23,6 +23,7 @@ export interface Card {
   notes?: string;
   theme?: string;
   userId?: string;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

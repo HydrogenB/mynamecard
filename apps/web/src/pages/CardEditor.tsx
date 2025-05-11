@@ -82,6 +82,7 @@ const CardEditor: React.FC = () => {
       const cardData = {
         ...data,
         photo: photoData,
+        active: true, // All new cards start as active
         // Ensure address fields are properly defined for database service
         address: data.address ? {
           street: data.address.street || '',
@@ -114,6 +115,19 @@ const CardEditor: React.FC = () => {
           console.error('Failed to update server cache:', err);
         }
       } else {
+        // Check if the user has reached their card limit
+        const { user } = useAuth();
+        if (!user) {
+          throw new Error('You must be logged in to create a card');
+        }
+        
+        const canCreate = await userService.canCreateCard(user.uid);
+        if (!canCreate) {
+          alert(t('errors.cardLimitReached'));
+          navigate('/dashboard');
+          return;
+        }
+        
         // Use database service to create the card in Firestore
         const card = await databaseService.createCard(cardData);
         
@@ -141,6 +155,7 @@ const CardEditor: React.FC = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Error saving card:', error);
+      alert(t('errors.saveCardFailed'));
     }
   };
 

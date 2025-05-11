@@ -56,7 +56,7 @@ export const firestoreService = {
   /**
    * Create a new card in Firestore
    */
-  async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt'>): Promise<Card> {
+  async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt' | 'active'>): Promise<Card> {
     // Check if slug is unique
     const isUnique = await isSlugUnique(card.slug);
     if (!isUnique) {
@@ -69,6 +69,7 @@ export const firestoreService = {
     // Prepare card data with timestamps
     const newCard = {
       ...card,
+      active: true, // New cards are active by default
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -79,6 +80,7 @@ export const firestoreService = {
     // Return the card with ID
     return {
       ...card,
+      active: true,
       id: docRef.id,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -90,6 +92,30 @@ export const firestoreService = {
    */
   async getCardBySlug(slug: string): Promise<Card | null> {
     const q = query(collection(firestore, COLLECTION_NAME), where('slug', '==', slug));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const docData = querySnapshot.docs[0];
+    const data = docData.data();
+    
+    return {
+      ...convertTimestamps(data),
+      id: parseInt(docData.id)
+    } as Card;
+  },
+  
+  /**
+   * Get a public card by its slug (only active cards)
+   */
+  async getPublicCardBySlug(slug: string): Promise<Card | null> {
+    const q = query(
+      collection(firestore, COLLECTION_NAME), 
+      where('slug', '==', slug),
+      where('active', '==', true)
+    );
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
@@ -144,6 +170,24 @@ export const firestoreService = {
       return true;
     } catch (error) {
       console.error('Error updating card:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Toggle card active status
+   */
+  async toggleCardActive(id: number, active: boolean): Promise<boolean> {
+    const docRef = doc(firestore, COLLECTION_NAME, id.toString());
+    
+    try {
+      await updateDoc(docRef, {
+        active,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error toggling card active status:', error);
       return false;
     }
   },

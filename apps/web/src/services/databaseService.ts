@@ -2,6 +2,7 @@
 import { Card } from '../db/db';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
+import userService from './userService';
 import {
   collection,
   doc,
@@ -71,11 +72,17 @@ export const databaseService = {
   /**
    * Create a card
    */
-  async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt'>): Promise<Card> {
+  async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt' | 'active'>): Promise<Card> {
     const user = this.getCurrentUser();
     
     if (!user) {
       throw new Error('User must be authenticated to create cards');
+    }
+    
+    // Check if user has reached their card limit
+    const canCreate = await userService.canCreateCard(user.uid);
+    if (!canCreate) {
+      throw new Error('You have reached your maximum number of cards. Please upgrade or delete existing cards.');
     }
     
     // Check if slug is unique
@@ -87,10 +94,11 @@ export const databaseService = {
     // Create a new document reference
     const docRef = doc(collection(firestore, COLLECTION_NAME));
     
-    // Prepare card data with timestamps and user ID
+    // Prepare card data with timestamps, user ID, and default active state
     const newCard = {
       ...card,
       userId: user.uid,
+      active: true, // Cards are active by default
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
@@ -98,10 +106,14 @@ export const databaseService = {
     // Write to Firestore
     await setDoc(docRef, newCard);
     
+    // Increment the user's card count
+    await userService.incrementCardsCreated(user.uid);
+    
     // Return the card with ID and convert timestamps
     const createdCard = {
       ...card,
       id: docRef.id,
+      active: true,
       createdAt: new Date(),
       updatedAt: new Date(),
       userId: user.uid
@@ -200,6 +212,42 @@ export const databaseService = {
   },
 
   /**
+   * Toggle card active status
+   */
+  async toggleCardActive(id: string | number, active: boolean): Promise<boolean> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to update cards');
+    }
+    
+    // Convert number id to string if necessary
+    const cardId = typeof id === 'number' ? id.toString() : id;
+    
+    // Get the card to check ownership
+    const docRef = doc(firestore, COLLECTION_NAME, cardId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return false;
+    }
+    
+    // Check if user owns this card
+    const cardData = docSnap.data();
+    if (cardData.userId !== user.uid) {
+      throw new Error('You do not have permission to update this card');
+    }
+    
+    // Update active status in Firestore
+    await updateDoc(docRef, {
+      active: active,
+      updatedAt: serverTimestamp()
+    });
+    
+    return true;
+  },
+
+  /**
    * Delete a card
    */
   async deleteCard(id: string | number): Promise<boolean> {
@@ -228,6 +276,9 @@ export const databaseService = {
     
     // Delete from Firestore
     await deleteDoc(docRef);
+    
+    // Decrement the user's card count
+    await userService.decrementCardsCreated(user.uid);
     
     return true;
   },
@@ -281,5 +332,32 @@ export const databaseService = {
     
     const querySnapshot = await getDocs(q);
     return querySnapshot.size;
+  },
+
+  /**
+   * Get active cards for public access
+   * Only retrieves active cards for public viewing
+   */
+  async getPublicCardBySlug(slug: string): Promise<Card | null> {
+    const q = query(
+      collection(firestore, COLLECTION_NAME), 
+      where('slug', '==', slug),
+      where('active', '==', true),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const docData = querySnapshot.docs[0].data();
+    const cardData = convertTimestamps(docData);
+    
+    return {
+      ...cardData,
+      id: querySnapshot.docs[0].id
+    } as Card;
   }
 };
