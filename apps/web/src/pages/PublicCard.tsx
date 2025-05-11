@@ -4,18 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/db';
 import NotFound from './NotFound';
 import QRCode from 'qrcode.react';
+import { generateVCard } from '../utils/vcardGenerator';
 
-interface Card {
-  id?: number;
-  slug: string;
-  firstName: string;
-  lastName: string;
-  organization: string;
-  title: string;
-  email: string;
-  phone: string;
-  photo?: string;
-  website?: string;
+// Import the Card type and extend it for our component
+import { Card as DBCard } from '../db/db';
+
+// Extend the DB Card type with the specific types we need
+interface Card extends Omit<DBCard, 'theme' | 'address' | 'createdAt' | 'updatedAt'> {
+  theme: string; // Make theme required
   address?: {
     street?: string;
     city?: string;
@@ -23,8 +19,6 @@ interface Card {
     postalCode?: string;
     country?: string;
   };
-  notes?: string;
-  theme: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -34,6 +28,7 @@ const PublicCard: React.FC = () => {
   const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { t } = useTranslation();
   
   useEffect(() => {
@@ -48,9 +43,13 @@ const PublicCard: React.FC = () => {
           .where('slug')
           .equals(slug)
           .first();
-        
         if (result) {
-          setCard(result);
+          // Ensure theme is defined (use blue as default if undefined)
+          const cardWithTheme = {
+            ...result,
+            theme: result.theme || 'blue'
+          };
+          setCard(cardWithTheme as unknown as Card);
         } else {
           setError(true);
         }
@@ -91,10 +90,35 @@ const PublicCard: React.FC = () => {
         return 'bg-blue-600 text-white';
     }
   };
-  
-  const downloadVCard = () => {
-    // Implement vCard download logic
-    alert('Download vCard feature coming soon!');
+
+  const downloadVCard = async () => {
+    if (!card || !card.slug) return;
+    
+    setIsDownloading(true);
+    try {
+      // Generate vCard content using our client-side generator
+      const vcardString = generateVCard(card as unknown as DBCard);
+      
+      // Create a Blob with the vCard content
+      const vcardBlob = new Blob([vcardString], { type: 'text/vcard;charset=utf-8' });
+      
+      // Create a download link and trigger the download
+      const url = window.URL.createObjectURL(vcardBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${card.firstName}_${card.lastName}.vcf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading vCard:', error);
+      alert(t('errors.generic'));
+    } finally {
+      setIsDownloading(false);
+    }
   };
   
   return (
@@ -122,17 +146,17 @@ const PublicCard: React.FC = () => {
           <div className="space-y-4">
             {/* Contact Information */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">{t('card.contactInfo')}</h2>
+              <h2 className="text-lg font-semibold mb-2">{t('publicCard.contactInfo')}</h2>
               <div className="space-y-2">
                 <p>
-                  <span className="font-medium">{t('card.email')}:</span> {card.email}
+                  <span className="font-medium">{t('form.email')}:</span> {card.email}
                 </p>
                 <p>
-                  <span className="font-medium">{t('card.phone')}:</span> {card.phone}
+                  <span className="font-medium">{t('form.phone')}:</span> {card.phone}
                 </p>
                 {card.website && (
                   <p>
-                    <span className="font-medium">{t('card.website')}:</span>{' '}
+                    <span className="font-medium">{t('form.website')}:</span>{' '}
                     <a
                       href={card.website.startsWith('http') ? card.website : `https://${card.website}`}
                       target="_blank"
@@ -149,7 +173,7 @@ const PublicCard: React.FC = () => {
             {/* Address Information */}
             {card.address && (
               <div>
-                <h2 className="text-lg font-semibold mb-2">{t('card.address')}</h2>
+                <h2 className="text-lg font-semibold mb-2">{t('publicCard.address')}</h2>
                 <address className="not-italic">
                   {card.address.street && <p>{card.address.street}</p>}
                   {card.address.city && card.address.state && (
@@ -165,14 +189,14 @@ const PublicCard: React.FC = () => {
             {/* Notes */}
             {card.notes && (
               <div>
-                <h2 className="text-lg font-semibold mb-2">{t('card.notes')}</h2>
+                <h2 className="text-lg font-semibold mb-2">{t('form.notes')}</h2>
                 <p className="whitespace-pre-line">{card.notes}</p>
               </div>
             )}
             
             {/* QR Code */}
             <div className="mt-6 flex flex-col items-center">
-              <h2 className="text-lg font-semibold mb-2">{t('card.scanMe')}</h2>
+              <h2 className="text-lg font-semibold mb-2">{t('publicCard.saveContact')}</h2>
               <div className="border p-4 rounded-lg bg-white">
                 <QRCode 
                   value={window.location.href} 
@@ -184,14 +208,19 @@ const PublicCard: React.FC = () => {
                 />
               </div>
             </div>
-            
-            {/* Download Button */}
+              {/* Download Button */}
             <div className="mt-6 flex justify-center">
               <button
                 onClick={downloadVCard}
-                className={`px-4 py-2 rounded ${getThemeClasses(card.theme)} hover:opacity-90 transition-opacity`}
+                disabled={isDownloading}
+                className={`px-4 py-2 rounded ${getThemeClasses(card.theme)} hover:opacity-90 transition-opacity flex items-center ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {t('card.downloadVcard')}
+                {isDownloading && (
+                  <span className="inline-block mr-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  </span>
+                )}
+                {isDownloading ? t('publicCard.downloading') : t('publicCard.downloadVcf')}
               </button>
             </div>
           </div>
