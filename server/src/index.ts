@@ -33,7 +33,7 @@ app.get('/api/vcf/:slug', (req, res) => {
   
   res.setHeader('Content-Type', 'text/vcard; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${slug}.vcf"`);
-  res.send(vcf);
+  return res.send(vcf);
 });
 
 // Register or update a card
@@ -45,7 +45,7 @@ app.post('/api/cards', (req, res) => {
   }
   
   cardCache.set(slug, data);
-  res.status(200).json({ success: true });
+  return res.status(200).json({ success: true });
 });
 
 // Public card route (SSR)

@@ -1,43 +1,19 @@
-export interface CardAddress {
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-}
-
-export interface CardData {
-  firstName: string;
-  lastName: string;
-  organization: string;
-  title: string;
-  email: string;
-  phone: string;
-  website?: string;
-  address?: CardAddress;
-  photo?: string;
-  notes?: string;
-  theme?: string;
-  slug?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export function renderCardHTML(card: CardData, slug?: string): string {
-  // Use card.slug as fallback if slug parameter is not provided
-  const cardSlug = slug || card.slug || '';
-  
-  // Generate Open Graph tags for SEO
-  const ogTags = `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.renderCardHTML = renderCardHTML;
+function renderCardHTML(card, slug) {
+    // Use card.slug as fallback if slug parameter is not provided
+    const cardSlug = slug || card.slug || '';
+    // Generate Open Graph tags for SEO
+    const ogTags = `
     <meta property="og:title" content="${card.firstName} ${card.lastName}" />
     <meta property="og:description" content="${card.title} at ${card.organization}" />
     <meta property="og:type" content="profile" />
     <meta property="og:url" content="http://localhost:3000/${cardSlug}" />
     ${card.photo ? `<meta property="og:image" content="${card.photo}" />` : ''}
   `;
-
-  // Use the client hydration approach - inject data that will be picked up by the client
-  return `
+    // Use the client hydration approach - inject data that will be picked up by the client
+    return `
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -53,12 +29,13 @@ export function renderCardHTML(card: CardData, slug?: string): string {
         <div id="root"></div>
         <script>
           window.__INITIAL_CARD_DATA__ = ${JSON.stringify({
-            slug,
-            data: card
-          })};
+        slug,
+        data: card
+    })};
         </script>
         <script type="module" src="/src/main.tsx"></script>
       </body>
     </html>
   `;
 }
+//# sourceMappingURL=ssrService.js.map

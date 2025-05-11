@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import NotFound from './NotFound';
 import QRCode from 'qrcode.react';
 import { generateVCard } from '../utils/vcardGenerator';
-import databaseService from '../services/databaseService';
+import { databaseService } from '../services/databaseService';
 import realtimeDbService from '../services/realtimeDbService';
 import { auth } from '../config/firebase';
 

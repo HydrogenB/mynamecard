@@ -5,10 +5,9 @@
   "workspaces": [
     "apps/web",
     "server"  ],  "scripts": {    "dev": "concurrently \"npm run --prefix ./apps/web dev\" \"npm run --prefix ./server dev\"",    "build": "echo \"Skipping web build, building server only...\" && cd server && npm run build",
-    "build:all": "echo \"Building web app...\" && cd apps/web && npm run build || echo \"Web build failed, continuing with server\" && cd ../../server && echo \"Building server...\" && npm run build:firebase",
-    "build:firebase": "npm run build:all",
-    "deploy": "npm run build:firebase && firebase deploy --only hosting",
-    "deploy:all": "npm run build:firebase && firebase deploy",
+    "build:all": "echo \"Building web app...\" && cd apps/web && npm run build",
+    "build:firebase": "cd apps/web && npm run build && echo \"Web build completed\"",    "deploy": "cd apps/web && npm run build && cd ../.. && firebase deploy --only hosting",
+    "deploy:all": "npm run build:firebase && firebase deploy --only hosting",
     "deploy:functions": "cd server && npm run build:firebase && cd .. && firebase deploy --only functions",
     "emulate": "npm run build:firebase && firebase emulators:start",
     "test": "npm run --prefix ./apps/web test && npm run --prefix ./server test",

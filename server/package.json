@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,  "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc && cp src/index.firebase.js dist/index.js",
-    "build:firebase": "tsc -p tsconfig.firebase.json",
+    "build": "tsc",
+    "build:firebase": "tsc -p tsconfig.firebase.json && echo 'Firebase functions build completed'",
     "start": "node dist/index.js",
     "test": "vitest run",
     "deploy": "firebase deploy --only functions"
