@@ -100,16 +100,28 @@ Visit the live application at [mynamecard-2c393.web.app](https://mynamecard-2c39
 ## Data Flow
 
 1. User creates a name card through the CardEditor page
-2. Card data is stored in the local IndexedDB database
-3. When a user accesses a public card via URL, the data is retrieved from IndexedDB
-4. The vCard download functionality generates a .vcf file on-demand client-side
+2. Card data is stored in Firestore with proper user authentication and authorization
+3. When a user accesses a public card via URL, the data is retrieved from Firestore
+4. Firestore provides offline capability with local caching for seamless experience 
+5. Card analytics (views, downloads, shares) are tracked in Firebase Realtime Database
+6. User online status and activity is monitored through Firebase Realtime Database
+7. The vCard download functionality generates a .vcf file on-demand client-side
 
 ## Key Components
 
-### Database Interface (apps/web/src/db/db.ts)
+### Database Service (apps/web/src/services/databaseService.ts)
 
-- Defines the Card interface and database schema
-- Handles CRUD operations for cards using Dexie.js for IndexedDB
+- Provides direct Firestore integration for data persistence
+- Handles CRUD operations for cards with authentication and authorization
+- Supports offline operations through Firestore offline persistence
+- Ensures data consistency with transaction support
+
+### Realtime Database Service (apps/web/src/services/realtimeDbService.ts)
+
+- Integrates with Firebase Realtime Database for real-time features
+- Tracks user online status and presence
+- Collects and manages analytics for card views, downloads, and shares
+- Provides real-time statistics for dashboard display
 
 ### Public Card Display (apps/web/src/pages/PublicCard.tsx)
 
@@ -129,11 +141,12 @@ The current implementation uses client-side vCard generation using the following
 
 1. A utility function in `vcardGenerator.ts` converts card data to vCard format
 2. When a user clicks "Download vCard" on a public card page:
-   - The card data is retrieved from IndexedDB
+   - The card data is retrieved from Firestore
    - The vCard generator creates a vCard string according to RFC 6350
    - A Blob is created with the vCard content
    - A download link is programmatically created and clicked
    - The user receives a .vcf file named with their first and last name
+   - The download event is tracked in Firebase Realtime Database for analytics
 
 ### vCard Format Details
 
@@ -144,6 +157,24 @@ The vCard generator creates vCards with:
 - Email, phone, and website details
 - Physical address when available
 - Photo (as base64 when available)
+
+## Authentication and Security
+
+### User Authentication
+
+The application uses Firebase Authentication for user management:
+- Email and password authentication
+- Google OAuth sign-in
+- Secure session management
+- Profile information management
+
+### Security Rules
+
+Access to data is protected by Firebase Security Rules:
+- Firestore rules enforce user-based read/write permissions
+- Realtime Database rules protect analytics and user status data
+- Public cards are accessible without authentication
+- User can only modify their own cards
 - Notes/additional information
 
 ## Edge Cases & Handling
@@ -183,11 +214,11 @@ The vCard generator creates vCards with:
 - **Cause**: User might be offline when trying to access or download a card
 - **Handling**: Proper offline detection and appropriate messaging
 
-## Future Implementation: Firestore Integration
+## Firestore Integration
 
 ### Overview
 
-The next phase of implementation will migrate from client-side IndexedDB to cloud-based Firestore for data persistence. This will enable:
+The application uses Firebase Firestore for data persistence, providing:
 
 1. Cross-device access to cards
 2. Better data durability

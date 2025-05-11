@@ -1,41 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Card } from '../db/db';
+import { Card } from '../db/db';
 import LanguageSwitch from '../components/LanguageSwitch';
 import PricingModal from '../components/PricingModal';
 import QRModal from '../components/QRModal';
+import { useAuth } from '../contexts/AuthContext';
+import { databaseService } from '../services/databaseService';
+import realtimeDbService from '../services/realtimeDbService';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showPricing, setShowPricing] = useState(false);
-  const [showQR, setShowQR] = useState<Card | null>(null);
-
-  const cards = useLiveQuery(() => db.getAllCards(), []);
-  const cardCount = useLiveQuery(() => db.getCardCount(), []) || 0;
-
+  const [showQR, setShowQR] = useState<Card | null>(null);  const [cards, setCards] = useState<Card[]>([]);
+  const [cardCount, setCardCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
+  // Load cards from Firestore
+  useEffect(() => {
+    const loadCards = async () => {
+      if (!user) {
+        setLoading(false);
+        return; // Exit early if no user
+      }
+      
+      try {
+        setLoading(true);
+        const fetchedCards = await databaseService.getAllCards();
+        const count = await databaseService.getCardCount();
+        setCards(fetchedCards);
+        setCardCount(count);
+        
+        // Load card statistics
+        const stats: Record<string, {views: number, downloads: number, shares: number}> = {};
+        
+        // Get stats for each card
+        for (const card of fetchedCards) {
+          if (card.id) {
+            const cardStat = await realtimeDbService.getCardStats(card.id);
+            if (cardStat) {
+              stats[card.id.toString()] = cardStat;
+            }
+          }
+        }
+        
+        setCardStats(stats);
+      } catch (error) {
+        console.error('Error fetching cards:', error);
+        setCards([]);
+        setCardCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadCards();
+  }, [user]);
+  
   const handleCreateCard = () => {
-    if (cardCount === 0) {
+    // Check if user can create more cards
+    const maxCards = user && user.photoURL !== null ? 5 : 1; // Pro users can have 5 cards
+    if (cardCount < maxCards) {
       navigate('/create');
     } else {
       setShowPricing(true);
     }
   };
-
-  const handleEditCard = (id: number) => {
+  const handleEditCard = (id: string | number) => {
     navigate(`/edit/${id}`);
   };
 
-  const handleDeleteCard = async (id: number) => {
+  const handleDeleteCard = async (id: string | number) => {
     if (window.confirm(t('dashboard.deleteConfirm'))) {
-      await db.deleteCard(id);
+      const success = await databaseService.deleteCard(id);
+      if (success) {
+        // Update the local state to reflect the deletion
+        setCards(prevCards => prevCards.filter(card => card.id !== id));
+        setCardCount(prevCount => prevCount - 1);
+      }
     }
   };
-
-  const handleShare = (card: Card) => {
+  const handleShare = async (card: Card) => {
     setShowQR(card);
+    
+    // Track share activity in Realtime Database
+    if (card.id) {
+      await realtimeDbService.trackCardActivity(card.id, 'share');
+      await realtimeDbService.updateCardStats(card.id, 'shares');
+      
+      // Update local stats
+      setCardStats(prev => {
+        const cardId = card.id!.toString();
+        const currentStats = prev[cardId] || { views: 0, downloads: 0, shares: 0 };
+        return {
+          ...prev,
+          [cardId]: {
+            ...currentStats,
+            shares: (currentStats.shares || 0) + 1
+          }
+        };
+      });
+    }
   };
 
   return (
@@ -43,9 +110,7 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
-      </div>
-
-      <div className="mb-4 flex justify-between items-center">
+      </div>      <div className="mb-4 flex justify-between items-center">
         <p className="text-sm text-gray-600">
           {t('dashboard.cardCount', { count: cardCount })}
         </p>
@@ -54,10 +119,33 @@ const Dashboard: React.FC = () => {
           className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition"
         >
           {t('dashboard.createBtn')}
-        </button>
-      </div>
-
-      {!cards || cards.length === 0 ? (
+        </button>      </div>      {loading ? (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="space-y-4">
+            {[1, 2].map(i => (
+              <div key={i} className="animate-pulse">
+                <div className="flex items-center mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 mr-3"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-36"></div>
+                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-3">
+                  <div className="h-3 bg-gray-200 rounded w-48"></div>
+                  <div className="h-3 bg-gray-200 rounded w-40"></div>
+                  <div className="h-3 bg-gray-200 rounded w-56"></div>
+                </div>
+                <div className="flex space-x-2">
+                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
+                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
+                  <div className="h-8 bg-gray-200 rounded flex-1"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : !cards || cards.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <p className="text-gray-600">{t('dashboard.emptyState')}</p>
         </div>
@@ -78,9 +166,7 @@ const Dashboard: React.FC = () => {
                   <h2 className="font-semibold">{card.firstName} {card.lastName}</h2>
                   <p className="text-sm text-gray-600">{card.title} @ {card.organization}</p>
                 </div>
-              </div>
-
-              <div className="text-sm text-gray-700 mb-3">
+              </div>              <div className="text-sm text-gray-700 mb-3">
                 <p>{card.email}</p>
                 <p>{card.phone}</p>
                 <p className="text-primary-600">
@@ -88,6 +174,21 @@ const Dashboard: React.FC = () => {
                     {window.location.origin}/{card.slug}
                   </Link>
                 </p>
+                
+                {/* Card Statistics */}
+                {card.id && cardStats[card.id.toString()] && (
+                  <div className="mt-2 flex space-x-4 text-xs text-gray-500">
+                    <span title={t('dashboard.viewCount')}>
+                      👁️ {cardStats[card.id.toString()]?.views || 0}
+                    </span>
+                    <span title={t('dashboard.downloadCount')}>
+                      ⬇️ {cardStats[card.id.toString()]?.downloads || 0}
+                    </span>
+                    <span title={t('dashboard.shareCount')}>
+                      🔗 {cardStats[card.id.toString()]?.shares || 0}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex space-x-2 mt-auto">

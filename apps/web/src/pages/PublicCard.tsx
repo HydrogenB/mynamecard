@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { db } from '../db/db';
 import NotFound from './NotFound';
 import QRCode from 'qrcode.react';
 import { generateVCard } from '../utils/vcardGenerator';
+import databaseService from '../services/databaseService';
+import realtimeDbService from '../services/realtimeDbService';
+import { auth } from '../config/firebase';
 
 // Import the Card type and extend it for our component
 import { Card as DBCard } from '../db/db';
@@ -39,10 +41,9 @@ const PublicCard: React.FC = () => {
           return;
         }
         
-        const result = await db.cards
-          .where('slug')
-          .equals(slug)
-          .first();
+        // Get the card from Firestore database
+        const result = await databaseService.getCardBySlug(slug);
+        
         if (result) {
           // Ensure theme is defined (use blue as default if undefined)
           const cardWithTheme = {
@@ -50,6 +51,16 @@ const PublicCard: React.FC = () => {
             theme: result.theme || 'blue'
           };
           setCard(cardWithTheme as unknown as Card);
+          
+          // Track the view in Firebase Realtime Database
+          const currentUser = auth.currentUser;
+          await realtimeDbService.logCardView(result.id || slug, {
+            isAuthenticated: !!currentUser,
+            uid: currentUser?.uid
+          });
+          
+          // Update card view statistics
+          await realtimeDbService.updateCardStats(result.id || slug, 'views');
         } else {
           setError(true);
         }
@@ -113,6 +124,12 @@ const PublicCard: React.FC = () => {
       // Clean up
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
+      
+      // Track download activity
+      if (card.id) {
+        await realtimeDbService.trackCardActivity(card.id, 'download');
+        await realtimeDbService.updateCardStats(card.id, 'downloads');
+      }
     } catch (error) {
       console.error('Error downloading vCard:', error);
       alert(t('errors.generic'));

@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cards collection rules
+    match /cards/{cardId} {
+      // Allow read access for public cards to anyone
+      allow read: if resource.data.isPublic == true;
+      
+      // Allow read access for user's own cards
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Allow create for authenticated users
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Allow update and delete for user's own cards
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // User data rules
+    match /users/{userId} {
+      // Users can only read/write their own data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

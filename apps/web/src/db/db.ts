@@ -9,7 +9,7 @@ export interface CardAddress {
 }
 
 export interface Card {
-  id?: number;
+  id?: string | number;
   slug: string;
   firstName: string;
   lastName: string;
@@ -22,6 +22,7 @@ export interface Card {
   photo?: string;
   notes?: string;
   theme?: string;
+  userId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,9 +36,12 @@ export class NameCardDB extends Dexie {
       cards: '++id, slug'
     });
   }
-  
-  async getCardBySlug(slug: string): Promise<Card | undefined> {
+    async getCardBySlug(slug: string): Promise<Card | undefined> {
     return this.cards.where('slug').equals(slug).first();
+  }
+  
+  async getCardById(id: number): Promise<Card | undefined> {
+    return this.cards.get(id);
   }
   
   async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {

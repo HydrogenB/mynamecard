@@ -43,8 +43,7 @@
     "country": "Country",
     "notes": "Notes",
     "theme": "Theme"
-  },
-  "validation": {
+  },  "validation": {
     "required": "This field is required",
     "email": "Please enter a valid email address",
     "phone": "Please enter a valid phone number",
@@ -77,10 +76,35 @@
     "yearly": "$99/year",
     "cta": "Upgrade Now",
     "dismiss": "Maybe Later"
-  },
-  "errors": {
+  },  "errors": {
     "generic": "Something went wrong. Please try again.",
     "notFound": "The card you're looking for doesn't exist.",
     "serverError": "Server error. Please try again later."
+  },
+  "auth": {
+    "signIn": "Sign in to your account",
+    "signUp": "Create an account",
+    "email": "Email address",
+    "password": "Password",
+    "signInButton": "Sign in",
+    "signUpButton": "Sign up",
+    "orContinueWith": "Or continue with",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Create an account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInInstead": "Sign in instead",
+    "genericError": "Authentication failed. Please try again.",
+    "signOut": "Sign out",
+    "profile": "Profile"
+  },
+  "migration": {
+    "notice": "You're now signed in to a cloud account!",
+    "explanation": "Would you like to migrate your locally stored name cards to your cloud account?",
+    "startButton": "Migrate my cards",
+    "inProgress": "Migrating...",
+    "complete": "Migration complete",
+    "error": "There was an error migrating your cards",
+    "tryAgain": "Please try again or contact support if the issue persists.",
+    "retry": "Try Again"
   }
 }

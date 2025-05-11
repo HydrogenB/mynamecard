@@ -3,35 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { db } from '../db/db';
 import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
-import { syncToLocalStorage } from '../db/db';
 import ImageUploader from '../components/ImageUploader';
-
-// Define Card interface to match the database model
-interface Card {
-  id?: number;
-  slug: string;
-  firstName: string;
-  lastName: string;
-  organization: string;
-  title: string;
-  email: string;
-  phone: string;
-  photo?: string;
-  theme: string;
-  website?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    postalCode?: string;
-    country?: string;
-  };
-  notes?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+import { databaseService } from '../services/databaseService';
+import realtimeDbService from '../services/realtimeDbService';
+import { Card } from '../db/db';
 
 const CardEditor: React.FC = () => {
   const { t } = useTranslation();
@@ -47,9 +23,7 @@ const CardEditor: React.FC = () => {
       theme: 'default',
       address: { street: '', city: '', state: '', postalCode: '', country: '' }
     }
-  });
-
-  // Watch fields that could affect slug generation
+  });  // Watch fields that could affect slug generation
   const firstName = watch('firstName', '');
   const lastName = watch('lastName', '');
 
@@ -58,7 +32,8 @@ const CardEditor: React.FC = () => {
       if (!id) return;
       
       try {
-        const card = await db.cards.get(Number(id));
+        // Use database service to get card data (will try Firestore first, then IndexedDB)
+        const card = await databaseService.getCard(Number(id));
         
         if (!card) {
           navigate('/dashboard');
@@ -101,18 +76,32 @@ const CardEditor: React.FC = () => {
       const autoSlug = generateSlug(firstName, lastName);
       setValue('slug', autoSlug);
     }
-  }, [firstName, lastName, setValue, isEditMode]);
-
-  const onSubmit = async (data: CardFormData) => {
+  }, [firstName, lastName, setValue, isEditMode]);  const onSubmit = async (data: CardFormData) => {
     try {
-      // Include photo in the data if it exists
+      // Include photo in the data if it exists and ensure address fields are valid
       const cardData = {
         ...data,
-        photo: photoData
+        photo: photoData,
+        // Ensure address fields are properly defined for database service
+        address: data.address ? {
+          street: data.address.street || '',
+          city: data.address.city || '',
+          state: data.address.state || '',
+          postalCode: data.address.postalCode || '',
+          country: data.address.country || '',
+        } : undefined
       };
       
       if (isEditMode && id) {
-        await db.updateCard(Number(id), cardData);
+        // Use database service to update the card in Firestore
+        const success = await databaseService.updateCard(id, cardData);
+        
+        if (!success) {
+          throw new Error('Failed to update card');
+        }
+        
+        // Log card update activity in Firebase Realtime Database
+        await realtimeDbService.trackCardActivity(id, 'view');
         
         // Update server (for SSR)
         try {
@@ -125,7 +114,17 @@ const CardEditor: React.FC = () => {
           console.error('Failed to update server cache:', err);
         }
       } else {
-        const cardId = await db.createCard(cardData);
+        // Use database service to create the card in Firestore
+        const card = await databaseService.createCard(cardData);
+        
+        if (!card) {
+          throw new Error('Failed to create card');
+        }
+        
+        // Log card creation activity in Firebase Realtime Database
+        if (card.id) {
+          await realtimeDbService.trackCardActivity(card.id, 'view');
+        }
         
         // Update server (for SSR)
         try {
@@ -138,9 +137,6 @@ const CardEditor: React.FC = () => {
           console.error('Failed to update server cache:', err);
         }
       }
-      
-      // Backup to localStorage
-      await syncToLocalStorage();
       
       navigate('/dashboard');
     } catch (error) {
@@ -173,11 +169,9 @@ const CardEditor: React.FC = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Photo upload section */}
         <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="font-medium mb-3">{t('cardEditor.appearance')}</h2>
-          <ImageUploader
+          <h2 className="font-medium mb-3">{t('cardEditor.appearance')}</h2>          <ImageUploader
             initialImage={photoData}
             onImageUpload={(dataUrl) => setPhotoData(dataUrl)}
-            onImageRemove={() => setPhotoData(undefined)}
           />
         </div>
         

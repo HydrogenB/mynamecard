@@ -1,0 +1,285 @@
+// Database service using Firebase Firestore directly
+import { Card } from '../db/db';
+import { auth } from '../config/firebase';
+import { User } from 'firebase/auth';
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  deleteDoc,
+  updateDoc,
+  serverTimestamp,
+  Timestamp,
+  query,
+  where,
+  limit,
+  orderBy,
+  runTransaction
+} from 'firebase/firestore';
+import { firestore } from '../config/firebase';
+
+const COLLECTION_NAME = 'cards';
+
+// Helper function to convert Firestore Timestamps to Date objects
+const convertTimestamps = (data: any): any => {
+  if (!data) return data;
+  
+  const result = { ...data };
+  
+  // Convert Firestore Timestamp objects to JavaScript Date objects
+  if (result.createdAt instanceof Timestamp) {
+    result.createdAt = result.createdAt.toDate();
+  }
+  
+  if (result.updatedAt instanceof Timestamp) {
+    result.updatedAt = result.updatedAt.toDate();
+  }
+  
+  return result;
+};
+
+// Helper function to check if a slug is unique
+const isSlugUnique = async (slug: string, excludeId?: string): Promise<boolean> => {
+  const q = query(collection(firestore, COLLECTION_NAME), where('slug', '==', slug));
+  const querySnapshot = await getDocs(q);
+  
+  if (querySnapshot.empty) {
+    return true;
+  }
+  
+  // If we're checking for an update operation, exclude the current card
+  if (excludeId) {
+    return querySnapshot.docs.every(doc => doc.id !== excludeId);
+  }
+  
+  return false;
+};
+
+/**
+ * Database service for handling Firestore operations
+ */
+export const databaseService = {
+  /**
+   * Get the current authenticated user
+   */
+  getCurrentUser(): User | null {
+    return auth.currentUser;
+  },
+
+  /**
+   * Create a card
+   */
+  async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt'>): Promise<Card> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to create cards');
+    }
+    
+    // Check if slug is unique
+    const isUnique = await isSlugUnique(card.slug);
+    if (!isUnique) {
+      throw new Error('Card slug already exists');
+    }
+    
+    // Create a new document reference
+    const docRef = doc(collection(firestore, COLLECTION_NAME));
+    
+    // Prepare card data with timestamps and user ID
+    const newCard = {
+      ...card,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    // Write to Firestore
+    await setDoc(docRef, newCard);
+    
+    // Return the card with ID and convert timestamps
+    const createdCard = {
+      ...card,
+      id: docRef.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: user.uid
+    };
+    
+    return createdCard as Card;
+  },
+
+  /**
+   * Get a card by slug
+   */
+  async getCardBySlug(slug: string): Promise<Card | null> {
+    const q = query(collection(firestore, COLLECTION_NAME), where('slug', '==', slug), limit(1));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const docData = querySnapshot.docs[0].data();
+    const cardData = convertTimestamps(docData);
+    
+    return {
+      ...cardData,
+      id: querySnapshot.docs[0].id
+    } as Card;
+  },
+
+  /**
+   * Get a card by ID
+   */
+  async getCard(id: string | number): Promise<Card | null> {
+    // Convert number id to string if necessary
+    const cardId = typeof id === 'number' ? id.toString() : id;
+    
+    const docRef = doc(firestore, COLLECTION_NAME, cardId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return null;
+    }
+    
+    const cardData = convertTimestamps(docSnap.data());
+    
+    return {
+      ...cardData,
+      id: docSnap.id
+    } as Card;
+  },
+
+  /**
+   * Update a card
+   */
+  async updateCard(id: string | number, updates: Partial<Omit<Card, 'id' | 'createdAt' | 'updatedAt'>>): Promise<boolean> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to update cards');
+    }
+    
+    // Convert number id to string if necessary
+    const cardId = typeof id === 'number' ? id.toString() : id;
+    
+    // Get the card to check ownership
+    const docRef = doc(firestore, COLLECTION_NAME, cardId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return false;
+    }
+    
+    // Check if user owns this card
+    const cardData = docSnap.data();
+    if (cardData.userId !== user.uid) {
+      throw new Error('You do not have permission to update this card');
+    }
+    
+    // If slug is being updated, check if it's unique
+    if (updates.slug && updates.slug !== cardData.slug) {
+      const isUnique = await isSlugUnique(updates.slug, cardId);
+      if (!isUnique) {
+        throw new Error('Card slug already exists');
+      }
+    }
+    
+    // Prepare updates with timestamp
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: serverTimestamp()
+    };
+    
+    // Update in Firestore
+    await updateDoc(docRef, updatesWithTimestamp);
+    
+    return true;
+  },
+
+  /**
+   * Delete a card
+   */
+  async deleteCard(id: string | number): Promise<boolean> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to delete cards');
+    }
+    
+    // Convert number id to string if necessary
+    const cardId = typeof id === 'number' ? id.toString() : id;
+    
+    // Get the card to check ownership
+    const docRef = doc(firestore, COLLECTION_NAME, cardId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return false;
+    }
+    
+    // Check if user owns this card
+    const cardData = docSnap.data();
+    if (cardData.userId !== user.uid) {
+      throw new Error('You do not have permission to delete this card');
+    }
+    
+    // Delete from Firestore
+    await deleteDoc(docRef);
+    
+    return true;
+  },
+
+  /**
+   * Get all cards for current user
+   */
+  async getAllCards(): Promise<Card[]> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      return [];
+    }
+    
+    // Query cards owned by current user
+    const q = query(
+      collection(firestore, COLLECTION_NAME), 
+      where('userId', '==', user.uid),
+      orderBy('updatedAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const cards: Card[] = [];
+    
+    querySnapshot.forEach(doc => {
+      const cardData = convertTimestamps(doc.data());
+      cards.push({
+        ...cardData,
+        id: doc.id
+      } as Card);
+    });
+    
+    return cards;
+  },
+
+  /**
+   * Get card count for current user
+   */
+  async getCardCount(): Promise<number> {
+    const user = this.getCurrentUser();
+    
+    if (!user) {
+      return 0;
+    }
+    
+    // Query cards owned by current user
+    const q = query(
+      collection(firestore, COLLECTION_NAME), 
+      where('userId', '==', user.uid)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  }
+};

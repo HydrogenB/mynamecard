@@ -1,4 +1,11 @@
 {
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "public": "apps/web/dist",
     "ignore": [
@@ -34,7 +41,8 @@
           }
         ]
       }
-    ],    "rewrites": [
+    ],
+    "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"
