@@ -45,7 +45,25 @@ export function generateVCard(card: Card): string {
   
   if (card.website) {
     vcard.push(`URL:${card.website}`); // URLs don't need escaping
-  }    // Address - only add if there are actual address components
+  }
+  
+  // Social media links (if present in the card data)
+  if (card.socialMedia) {
+    if (card.socialMedia.linkedin) {
+      vcard.push(`URL;TYPE=LinkedIn:${card.socialMedia.linkedin}`);
+    }
+    if (card.socialMedia.twitter) {
+      vcard.push(`URL;TYPE=Twitter:${card.socialMedia.twitter}`);
+    }
+    if (card.socialMedia.facebook) {
+      vcard.push(`URL;TYPE=Facebook:${card.socialMedia.facebook}`);
+    }
+    if (card.socialMedia.instagram) {
+      vcard.push(`URL;TYPE=Instagram:${card.socialMedia.instagram}`);
+    }
+  }
+    
+  // Address - only add if there are actual address components
   if (card.address) {
     const { street = '', city = '', state = '', postalCode = '', country = '' } = card.address;
     
@@ -60,11 +78,14 @@ export function generateVCard(card: Card): string {
     // Extract base64 data without the prefix
     const photoData = card.photo.split(',')[1];
     vcard.push(`PHOTO;ENCODING=b;TYPE=JPEG:${photoData}`);
-  }    // Notes
+  }
+  
+  // Notes
   if (card.notes) {
     vcard.push(`NOTE:${escapeVCardField(card.notes)}`);
   }
-    // URL to the card - only include if slug is available
+  
+  // URL to the card - only include if slug is available
   if (card.slug) {
     // Use the current URL pattern (assuming we're viewing the card when downloading)
     // This ensures we use the correct path format for the application
@@ -82,4 +103,30 @@ export function generateVCard(card: Card): string {
   vcard.push('END:VCARD');
   
   return vcard.join('\n');
+}
+
+// Function to track vCard download analytics
+export async function trackVcardDownload(cardId: string | number): Promise<boolean> {
+  try {
+    // Call the analytics service to track the download
+    // This is a client-side implementation that would call the API
+    const response = await fetch(`/api/cards/${cardId}/share`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        type: 'download', 
+        timestamp: new Date().toISOString()
+      })
+    });
+    
+    if (response.ok) {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error tracking vCard download:', error);
+    return false;
+  }
 }

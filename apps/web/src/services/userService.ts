@@ -3,8 +3,16 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  getDocs,
+  query,
+  where,
+  increment,
+  Firestore
 } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { firestore } from '../config/firebase';
 import { User } from 'firebase/auth';
 
@@ -18,9 +26,11 @@ interface UserData {
   cardsCreated: number;
   createdAt: Date;
   updatedAt: Date;
+  lastSeen?: Date;
 }
 
 const COLLECTION_NAME = 'users';
+const SYSTEM_CONFIG_COLLECTION = 'system_config';
 const DEFAULT_CARD_LIMIT = 2; // Default limit of 2 cards per user
 
 /**
@@ -42,7 +52,8 @@ export const userService = {
       cardLimit: DEFAULT_CARD_LIMIT, // Free users can have 2 cards by default
       cardsCreated: 0,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      lastSeen: serverTimestamp()
     };
     
     await setDoc(userRef, userData);
@@ -108,6 +119,30 @@ export const userService = {
     } catch (error) {
       console.error('Error upgrading user to pro:', error);
       return false;
+    }
+  },
+  
+  /**
+   * Upgrade user's plan to Pro
+   */
+  async upgradeToPro(uid: string, paymentToken: string): Promise<{ plan: string; cardLimit: number }> {
+    try {
+      // Call the upgradePlan Cloud Function
+      const functions = getFunctions();
+      const upgradeFunction = httpsCallable(functions, 'upgradePlan');
+      
+      const result = await upgradeFunction({ uid, paymentToken });
+      const data = result.data as { plan: string; cardLimit: number };
+      
+      return {
+        plan: data.plan,
+        cardLimit: data.cardLimit
+      };
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      throw error instanceof FirebaseError 
+        ? error 
+        : new Error('Failed to upgrade plan');
     }
   },
   
@@ -232,6 +267,56 @@ export const userService = {
         pro: 999
       };
     }
+  },
+  
+  /**
+   * Get user's card limits and usage information
+   */
+  async getUserLimits(uid: string): Promise<{ 
+    plan: string; 
+    cardsCreated: number; 
+    cardLimit: number; 
+    cardsRemaining: number; 
+  }> {
+    // Get user data
+    const userRef = doc(firestore, COLLECTION_NAME, uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userDoc.data();
+    const userPlan = userData.plan || 'free';
+    
+    // Get system limits
+    const limitsRef = doc(firestore, SYSTEM_CONFIG_COLLECTION, 'card_limits');
+    const limitsDoc = await getDoc(limitsRef);
+    
+    if (!limitsDoc.exists()) {
+      throw new Error('System configuration not found');
+    }
+    
+    const limits = limitsDoc.data();
+    const cardLimit = limits[userPlan] || DEFAULT_CARD_LIMIT;
+    const cardsCreated = userData.cardsCreated || 0;
+    
+    return {
+      plan: userPlan,
+      cardsCreated,
+      cardLimit,
+      cardsRemaining: Math.max(0, cardLimit - cardsCreated)
+    };
+  },
+  
+  /**
+   * Update user's last seen timestamp
+   */
+  async updateLastSeen(uid: string): Promise<void> {
+    const userRef = doc(firestore, COLLECTION_NAME, uid);
+    await updateDoc(userRef, {
+      lastSeen: serverTimestamp()
+    });
   }
 };
 

@@ -15,7 +15,7 @@ The project has been successfully migrated from IndexedDB to Firebase services w
 - ✅ Offline persistence enabled with Firestore
 - ✅ Admin configuration for card limits by plan type
 - ✅ Environment configuration for Firebase API keys
-- 🚧 Server-side functions (partially implemented)
+- ✅ Server-side functions and analytics tracking
 - 🚧 CI/CD pipeline setup in progress
 
 ## Architecture Overview
@@ -36,6 +36,21 @@ This project is a monorepo containing:
 
 - `apps/web`: React web application (client-side)
 - `server`: Node.js server (API and server-side rendering)
+
+## API Flow
+
+The application follows a comprehensive API flow that integrates Firebase services:
+
+1. **User Login**: Authentication using Firebase Auth SDK
+2. **Create Card**: Creates a card document in Firestore with user ownership
+3. **Edit Card**: Updates existing card documents with verification of ownership
+4. **View Public Card**: Retrieves card by slug with analytics tracking
+5. **Log View Analytics**: Records view events in Firestore
+6. **Download vCard**: Generates and provides .vcf file with analytics tracking
+7. **Share Card**: Tracks sharing events in Firestore
+8. **Track User Status**: Updates user's last seen timestamp
+9. **Enforce Card Limit**: Prevents users from exceeding their plan limit
+10. **Upgrade Plan**: Allows users to upgrade to Pro plan for additional cards
 
 ## Development Setup
 
@@ -190,6 +205,7 @@ The vCard generator creates vCards with:
 - Email, phone, and website details
 - Physical address when available
 - Photo (as base64 when available)
+- Social media links (when available)
 
 ## Authentication and Security
 
@@ -212,461 +228,26 @@ Access to data is protected by Firebase Security Rules:
 - Realtime Database rules protect analytics and user status data
 - Server-side configuration for plan limits and features
 
-## Deployment Guide
+## Analytics Implementation
 
-### Firebase Deployment
+The application tracks various user activities:
+- Card views: When someone views a public card
+- Downloads: When a vCard is downloaded
+- Shares: When a card is shared via the sharing feature
+- User presence: Online/offline status and last seen timestamps
 
-The application is set up for deployment to Firebase using Firebase Hosting for the web app and Firebase Functions for the server-side components.
+These analytics are stored in Firestore and can be viewed by card owners in their dashboard.
 
-#### Prerequisites
+## Plan Management
 
-1. Install Firebase CLI globally:
-```bash
-npm install -g firebase-tools
-```
-
-2. Login to Firebase:
-```bash
-firebase login
-```
-
-3. Initialize Firebase project (if not already done):
-```bash
-firebase init
-```
-
-#### Deployment Steps
-
-1. **Deploy Web App Only** (recommended for initial deployment):
-```bash
-npm run deploy
-```
-This builds the React application and deploys it to Firebase Hosting.
-
-2. **Deploy Server Functions** (when server-side functions are ready):
-```bash
-npm run deploy:functions
-```
-
-3. **Deploy Everything** (web app + functions):
-```bash
-npm run deploy:all
-```
-
-### Deployment Configuration
-
-- The web app is built from the `apps/web` directory using Vite
-- The server functions are built from the `server` directory
-- Firebase configuration is in `firebase.json`
-- Firebase Functions are using Node.js 18 runtime
-
-### Current Deployment Limitations
-
-- Server functions are partially implemented with placeholders
-- The Firebase Functions deployment requires proper setup of firebase-admin and firebase-functions packages
-
-## Edge Cases & Handling
-
-### 1. Data Retrieval Failures
-
-- **Cause**: Network issues or Firebase service disruption
-- **Handling**: Firestore offline persistence provides fallback, error states with appropriate messages
-
-### 2. Missing Card Data
-
-- **Cause**: User might access a URL for a non-existent card
-- **Handling**: NotFound component displayed with clear message
-
-### 3. Empty Required Fields
-
-- **Cause**: Cards might be created with missing required information
-- **Handling**: Form validation prevents creation, display gracefully handles missing optional fields
-
-### 4. Non-Latin Character Support
-
-- **Cause**: International users may use non-Latin characters in their names/information
-- **Handling**: UTF-8 encoding support in vCard generation and Firestore storage
-
-### 5. Large Photo Handling
-
-- **Cause**: User might upload very large profile photos
-- **Handling**: Image compression before storage, with option to use Firebase Storage for larger files
-
-### 6. Authentication Failure
-
-- **Cause**: User authentication might fail or expire
-- **Handling**: Proper error messages and redirection to sign-in page
-
-### 7. Offline Operation
-
-- **Cause**: User might be offline when trying to access or download a card
-- **Handling**: Firestore offline persistence and proper connection state handling
-
-## Firebase Implementation
-
-### Overview
-
-The application leverages Firebase services for data management and real-time features:
-
-1. **Firestore**: Primary data storage for name cards
-2. **Realtime Database**: Analytics and real-time status tracking
-3. **Firebase Authentication**: User account management
-4. **Firebase Hosting**: Application deployment
-5. **Offline Persistence**: For seamless offline usage
-
-### Current Implementation
-
-#### 1. Firebase Configuration
-
-The application uses Firebase services for data storage, authentication, and real-time features. The Firebase configuration connects to both Firestore and Realtime Database.
-
-```typescript
-// apps/web/src/config/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
-import { getDatabase } from 'firebase/database';
-
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAnKYbr1YaEL14GtsUcnC7vEmwxx4u6SzM",
-  authDomain: "mynamecard-2c393.firebaseapp.com",
-  projectId: "mynamecard-2c393",
-  storageBucket: "mynamecard-2c393.appspot.com",
-  messagingSenderId: "428846201204",
-  appId: "1:428846201204:web:05306353548d9541d94cbc",
-  measurementId: "G-C78MBVW9G9",
-  databaseURL: "https://mynamecard-2c393-default-rtdb.firebaseio.com"
-};
-
-const app = initializeApp(firebaseConfig);
-export const firestore = getFirestore(app);
-export const auth = getAuth(app);
-export const storage = getStorage(app);
-export const database = getDatabase(app);
-
-// Enable offline persistence for Firestore
-enableIndexedDbPersistence(firestore)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Firebase persistence failed: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Firebase persistence not supported in this browser');
-    }
-  });
-```
-
-Both Firestore and Realtime Database are used for different purposes:
-- **Firestore**: Stores structured card data, user profiles, and settings
-- **Realtime Database**: Tracks analytics, user presence, and real-time statistics
-
-#### 2. Server Implementation
-
-The application includes both client-side functionality and server-side features:
-
-```typescript
-// Server implementation in Express.js (server/src/index.ts)
-import express from 'express';
-import cors from 'cors';
-import compression from 'compression';
-import path from 'path';
-import { generateVCard } from './services/vcardService';
-import { CardData, renderCardHTML } from './services/ssrService';
-
-const app = express();
-app.use(cors());
-app.use(compression());
-app.use(express.json());
-
-// API endpoints for vCard generation and server-side rendering
-app.get('/api/vcf/:slug', (req, res) => {
-  const { slug } = req.params;
-  // Generate and return vCard data
-});
-
-// For Firebase Functions deployment (server/src/index.firebase.ts)
-export const api = functions.https.onRequest(app);
-```
-
-#### 3. Database Service Architecture
-
-The application uses two complementary Firebase database services:
-
-1. **Firestore Service**: Core data persistence for cards
-   - CRUD operations for name cards with transactional consistency
-   - User-specific card management with ownership validation
-   - Card limit enforcement (2 cards for free users by default)
-   - Offline persistence capabilities
-   
-2. **Realtime Database Service**: Analytics and real-time features
-   - User online status tracking
-   - Card view analytics
-   - Usage statistics (views, downloads, shares)
-   - Real-time activity monitoring
-
-### Firebase Data Model
-
-```
-firestore:
-  cards/
-  ├── {cardId}/
-  │   ├── slug: string
-  │   ├── firstName: string
-  │   ├── lastName: string
-  │   ├── organization: string
-  │   ├── title: string
-  │   ├── email: string
-  │   ├── phone: string
-  │   ├── website: string (optional)
-  │   ├── address: {
-  │   │   ├── street: string (optional)
-  │   │   ├── city: string (optional)
-  │   │   ├── state: string (optional)
-  │   │   ├── postalCode: string (optional)
-  │   │   └── country: string (optional)
-  │   │ }
-  │   ├── photo: string (optional) - Base64 or URL
-  │   ├── notes: string (optional)
-  │   ├── theme: string
-  │   ├── userId: string - Reference to authenticated user
-  │   ├── active: boolean - Card visibility status
-  │   ├── createdAt: timestamp
-  │   └── updatedAt: timestamp
-  │
-  users/
-  ├── {userId}/
-      ├── email: string
-      ├── displayName: string
-      ├── photoURL: string (optional)
-      ├── plan: string ('free' | 'pro')
-      ├── cardLimit: number
-      ├── cardsCreated: number
-      ├── createdAt: timestamp
-      └── updatedAt: timestamp
-  │
-  admin/
-  ├── card_limits/
-      ├── free: number
-      ├── pro: number
-      └── updatedAt: timestamp
-
-realtime-database:
-  status/
-  ├── {userId}/
-  │   ├── isOnline: boolean
-  │   ├── lastSeen: timestamp
-  │   ├── displayName: string
-  │   └── photoURL: string (optional)
-  │
-  analytics/
-  ├── cardViews/
-  │   ├── {cardId}/
-  │       ├── {timestamp}/
-  │           ├── timestamp: ISO date
-  │           └── viewerInfo: { isAuthenticated, uid }
-  │
-  cardActivity/
-  ├── {userId}/
-  │   ├── {cardId}/
-  │       ├── {timestamp}/
-  │           ├── activity: 'view' | 'download' | 'share'
-  │           └── timestamp: ISO date
-  │
-  cardStats/
-  ├── {cardId}/
-      ├── views: number
-      ├── downloads: number
-      ├── shares: number
-      └── lastUpdated: ISO date
-```
-
-### Security Rules
-
-#### Firestore Security Rules
-
-```
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      
-      // Allow create for authenticated users
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      
-      // Allow update and delete for user's own cards
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-    
-    // User data rules
-    match /users/{userId} {
-      // Users can only read/write their own data
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-#### Realtime Database Security Rules
-
-```
-{
-  "rules": {
-    ".read": false,
-    ".write": false,
-    
-    "status": {
-      "$uid": {
-        // Only authenticated users can write their own status
-        ".read": true,
-        ".write": "auth !== null && auth.uid === $uid"
-      }
-    },
-    
-    "analytics": {
-      "cardViews": {
-        "$cardId": {
-          ".read": "auth !== null",
-          ".write": true
-        }
-      }
-    },
-    
-    "cardActivity": {
-      "$uid": {
-        // Users can only read/write their own card activity
-        ".read": "auth !== null && auth.uid === $uid",
-        ".write": "auth !== null && auth.uid === $uid"
-      }
-    },
-    
-    "cardStats": {
-      "$cardId": {
-        // Anyone can read card stats, but only authenticated users can update
-        ".read": true,
-        ".write": "auth !== null"
-      }
-    }
-  }
-}
-```
-
-### Key Firebase Implementation Features
-
-1. **Offline Support**:
-   - Implemented Firestore offline persistence
-   - App functions seamlessly offline and syncs when connection is restored
-
-2. **Real-time Analytics**:
-   - Card view tracking
-   - Download and sharing statistics
-   - User activity monitoring
-
-3. **User Authentication**:
-   - Email/password authentication
-   - Google OAuth integration
-   - User profile management
-
-4. **Security**:
-   - Comprehensive security rules for both databases
-   - Data validation server-side and client-side
-   - Protection against unauthorized access
-
-## API Documentation
-
-### Card Interface
-
-```typescript
-interface CardAddress {
-  street: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-}
-
-interface Card {
-  id?: number;
-  slug: string;
-  firstName: string;
-  lastName: string;
-  organization: string;
-  title: string;
-  email: string;
-  phone: string;
-  website?: string;
-  address?: CardAddress;
-  photo?: string;
-  notes?: string;
-  theme?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### vCard Generator API
-
-```typescript
-/**
- * Generates a vCard formatted string from a card object
- * @param card The card object containing contact information
- * @returns String representation of vCard in version 3.0 format
- */
-function generateVCard(card: Card): string
-```
-
-### User Authentication Service (Future)
-
-```typescript
-// apps/web/src/services/authService.ts
-import { auth } from '../config/firebase';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-
-export const authService = {
-  async register(email: string, password: string) {
-    return createUserWithEmailAndPassword(auth, email, password);
-  },
-  
-  async login(email: string, password: string) {
-    return signInWithEmailAndPassword(auth, email, password);
-  },
-  
-  async signOut() {
-    return firebaseSignOut(auth);
-  },
-  
-  onAuthChange(callback: (user: any) => void) {
-    return onAuthStateChanged(auth, callback);
-  }
-};
-```
-
-## Testing Strategy
-
-1. **Unit Tests**: For utility functions and data transformations
-   - Test vCard generation with various input data
-   - Test form validations
-   - Test data transformations
-
-2. **Component Tests**: For UI components and rendering logic
-   - Test rendering of cards with different data
-   - Test interactive elements
-   - Test error states and loading states
-
-3. **Integration Tests**: For database operations and API interactions
-   - Test data flow between components
-   - Test database CRUD operations
-   - Test authentication flow (future)
-
-4. **End-to-End Tests**: For complete user flows   - Create a card and verify persistence
-   - Access a card via URL
-   - Download vCard and verify content
-   - Test offline functionality
+Users start with a free plan (2 card limit) and can upgrade to Pro (10 card limit):
+- Card limit is enforced at both client and server sides
+- Plan upgrades are processed through a secure API endpoint
+- Users can manage their subscription through their profile
 
 ## Conclusion
 
-The Smart Name Card application provides a modern solution for digital business cards with vCard download functionality. The current implementation uses client-side storage with IndexedDB, which offers a fast and offline-capable experience. The planned migration to Firestore will enhance the application with cloud storage, user authentication, and cross-device synchronization while maintaining the core functionality.
+The Smart Name Card application provides a modern solution for digital business cards with vCard download functionality. The current implementation uses Firestore for data persistence, offering cloud storage, user authentication, and cross-device synchronization while maintaining the core functionality.
 
 This documentation covers the current architecture, implementation details, and future plans to help any developer understand and extend the application. The vCard download feature has been successfully implemented and tested with various contact management systems for compatibility.
 

@@ -4,8 +4,12 @@ import compression from 'compression';
 // These imports are commented out to allow the build to succeed
 // import * as admin from 'firebase-admin';
 // import * as functions from 'firebase-functions';
-import { generateVCard } from './services/vcardService';
+import { generateVCard, trackVcardDownload } from './services/vcardService';
 import { CardData, renderCardHTML } from './services/ssrService';
+
+// Export Cloud Functions
+export { upgradePlan } from './functions/upgradePlan';
+export { initializeCardLimits } from './functions/initializeCardLimits';
 
 // Add these interfaces to support Firebase functionality
 // Used to extend CardData with Firebase-specific fields
@@ -87,6 +91,43 @@ app.get('/api/cards/:slug', async (req, res) => {
       slug: slug || "demo"
     };
     
+    // Track card view in analytics
+    try {
+      // In production with actual Firebase, this would track the view
+      // using Firestore 
+      const viewerId = req.headers['user-id'] || 'anonymous';
+      console.log(`Card viewed: ${slug} by ${viewerId}`);
+
+      // Log view event in Firestore
+      await db.collection('cardViews').add({
+        cardId: slug,
+        type: "view",
+        uid: viewerId,
+        timestamp: new Date()
+      });
+      
+      // Increment view count in card stats
+      const cardStatsRef = db.collection('cardStats').doc(slug);
+      const cardStatsDoc = await cardStatsRef.get();
+      
+      if (cardStatsDoc.exists) {
+        await cardStatsRef.update({
+          views: (cardStatsDoc.data().views || 0) + 1,
+          lastUpdated: new Date()
+        });
+      } else {
+        await cardStatsRef.set({
+          cardId: slug,
+          views: 1,
+          downloads: 0,
+          shares: 0,
+          lastUpdated: new Date()
+        });
+      }
+    } catch (trackError) {
+      console.error('Error tracking view:', trackError);
+    }
+    
     return res.json(card);
   } catch (error) {
     console.error('Error fetching card:', error);
@@ -98,11 +139,42 @@ app.get('/api/cards/:slug', async (req, res) => {
 app.post('/api/cards', async (req, res) => {
   try {
     const cardData = req.body as CardData;
+    const userId = req.headers['user-id'] as string; // In real app, this would be from Firebase Auth
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Check user's card limit before creating
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      const cardLimit = userData.cardLimit || CONFIG.DEFAULT_CARD_LIMIT;
+      const cardsCreated = userData.cardsCreated || 0;
+      
+      if (cardsCreated >= cardLimit) {
+        return res.status(403).json({ 
+          error: 'Card limit reached',
+          limit: cardLimit,
+          plan: userData.plan || 'free'
+        });
+      }
+    }
+    
     cardData.createdAt = new Date();
     cardData.updatedAt = new Date();
+    cardData.userId = userId;
     
     const docRef = await cardsCollection.add(cardData);
     const newCard = { id: docRef.id, ...cardData };
+    
+    // Update user's card count
+    if (userDoc.exists) {
+      await db.collection('users').doc(userId).update({
+        cardsCreated: (userDoc.data().cardsCreated || 0) + 1,
+        updatedAt: new Date()
+      });
+    }
     
     return res.status(201).json(newCard);
   } catch (error) {
@@ -146,6 +218,8 @@ app.put('/api/cards/:id', async (req, res) => {
 app.delete('/api/cards/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    const userId = req.headers['user-id']; // In real app, this would be from Firebase Auth
+    
     const cardRef = cardsCollection.doc(id);
     const cardDoc = await cardRef.get();
     
@@ -153,7 +227,18 @@ app.delete('/api/cards/:id', async (req, res) => {
       return res.status(404).json({ error: 'Card not found' });
     }
     
+    // Check card ownership (authorization)
+    if (cardDoc.data().userId !== userId) {
+      return res.status(403).json({ error: 'You do not have permission to delete this card' });
+    }
+    
     await cardRef.delete();
+    
+    // Update user's card count
+    await db.collection('users').doc(userId.toString()).update({
+      cardsCreated: Math.max(0, (await db.collection('users').doc(userId.toString()).get()).data().cardsCreated - 1),
+      updatedAt: new Date()
+    });
     
     return res.json({ message: 'Card deleted successfully' });
   } catch (error) {
@@ -175,11 +260,43 @@ app.get('/api/cards/:id/vcard', async (req, res) => {
     const cardData = cardDoc.data() as CardData;
     const vcardContent = generateVCard(cardData);
     
+    // Track download in analytics
+    const userId = req.headers['user-id'] as string || 'anonymous';
+    await trackVcardDownload(id, userId);
+    
+    // Increment download count
+    try {
+      // In production this would update Firestore
+      console.log(`vCard download tracked: ${id} by ${userId}`);
+      // await incrementCardStat(id, 'downloads');
+    } catch (trackError) {
+      console.error('Error tracking download:', trackError);
+    }
+    
     res.setHeader('Content-Type', 'text/vcard');
     res.setHeader('Content-Disposition', `attachment; filename=${cardData.slug || id}.vcf`);
     return res.send(vcardContent);
   } catch (error) {
     console.error('Error generating vCard:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Log card share
+app.post('/api/cards/:id/share', async (req, res) => {
+  try {
+    const cardId = req.params.id;
+    const userId = req.headers['user-id'] || 'anonymous';
+    
+    // In production, this would log to Firestore
+    console.log(`Card shared: ${cardId} by ${userId}`);
+    
+    // Increment share count
+    // await incrementCardStat(cardId, 'shares');
+    
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error logging share:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -264,6 +381,64 @@ app.get('/api/users/me/card-limit', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting user card limit:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// New endpoint for upgrading plan (based on sequence diagram)
+app.post('/api/upgradePlan', async (req, res) => {
+  try {
+    const { uid, paymentToken } = req.body;
+    
+    if (!uid) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    // In production, this would verify the payment token with a payment processor
+    // For now, we'll simulate a successful payment
+    console.log(`Processing payment for user ${uid} with token ${paymentToken}`);
+    
+    // Update user's plan in Firestore
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    await userRef.update({
+      plan: 'pro',
+      cardLimit: CONFIG.PRO_PLAN_LIMIT,
+      updatedAt: new Date()
+    });
+    
+    return res.json({
+      success: true,
+      plan: 'pro',
+      cardLimit: CONFIG.PRO_PLAN_LIMIT
+    });
+  } catch (error) {
+    console.error('Error upgrading plan:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update user's last seen timestamp
+app.patch('/api/users/me/lastSeen', async (req, res) => {
+  try {
+    const userId = req.headers['user-id'];
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    await db.collection('users').doc(userId.toString()).update({
+      lastSeen: new Date()
+    });
+    
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating last seen:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 });
