@@ -22,6 +22,7 @@ const Dashboard: React.FC = () => {
   const [cardLimit, setCardLimit] = useState(2); // Default limit
   const [loading, setLoading] = useState(true);
   const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
+  const [showMigrationNotice, setShowMigrationNotice] = useState(true);
     // Load cards from Firestore
   useEffect(() => {
     const loadCards = async () => {
