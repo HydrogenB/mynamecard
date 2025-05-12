@@ -96,10 +96,19 @@ export const databaseService = {
           updatedAt: serverTimestamp()
         };
         
-        await setDoc(userRef, defaultUserData);
-        
-        // Wait briefly to ensure Firestore has time to process the profile creation
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+          await setDoc(userRef, defaultUserData);
+          console.log('User profile created successfully');
+          
+          // Wait longer to ensure Firestore has time to process the profile creation
+          // and propagate to the security rules - 2 seconds should be enough
+          console.log('Waiting for Firestore security rules propagation...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('Proceeding with card creation after delay');
+        } catch (profileError: any) {
+          console.error('Error creating user profile:', profileError);
+          throw new Error(`Failed to create user profile: ${profileError.message || ''}`);
+        }
       }
       
       // Run in a transaction to ensure card limit is enforced

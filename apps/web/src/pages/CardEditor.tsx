@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
 import ImageUploader from '../components/ImageUploader';
 import { databaseService } from '../services/databaseService';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../db/db';
@@ -120,7 +120,7 @@ const CardEditor: React.FC = () => {
         }
         
         // Log card update activity in Firebase Realtime Database
-        await realtimeDbService.trackCardActivity(id, 'view');
+        await firebaseAnalyticsService.trackCardActivity(id, 'view');
         
         // Update server (for SSR)
         try {
@@ -174,7 +174,7 @@ const CardEditor: React.FC = () => {
         
         // Log card creation activity in Firebase Realtime Database
         if (card.id) {
-          await realtimeDbService.trackCardActivity(card.id, 'view');
+          await firebaseAnalyticsService.trackCardActivity(card.id, 'view');
         }
         
         // Update server (for SSR)
@@ -193,7 +193,7 @@ const CardEditor: React.FC = () => {
       // Check for specific Firebase permission errors
       if (error?.code === 'permission-denied') {
         console.error('Firebase permission denied error:', error);
-        alert(`${t('errors.saveCardFailed')}: You don't have permission to create this card. Please ensure you're logged in with the correct account.`);
+        alert(`${t('errors.saveCardFailed')}: Missing or insufficient permissions. This could be due to your user profile not being fully initialized. Please try again in a few moments, or try logging out and back in.`);
       } 
       // Check for profile-related errors
       else if (error?.message?.includes('profile')) {

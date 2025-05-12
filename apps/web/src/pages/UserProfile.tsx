@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile, User } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { updateProfile } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
+import { userService } from '../services/userService';
 
 const UserProfile: React.FC = () => {
   const { t } = useTranslation();
@@ -21,7 +21,7 @@ const UserProfile: React.FC = () => {
       if (user) {
         setDisplayName(user.displayName || '');
         try {
-          const profileData = await realtimeDbService.getCurrentUser();
+          const profileData = firebaseAnalyticsService.getCurrentUser();
           if (profileData) {
             const userData = await userService.getUserProfile(user.uid);
             setUserProfileData(userData);
@@ -53,7 +53,7 @@ const UserProfile: React.FC = () => {
       });
       
       // Update online status with new display name
-      await realtimeDbService.setUserOnlineStatus(true);
+      await firebaseAnalyticsService.setUserOnlineStatus(true);
       
       setMessage('Profile updated successfully');
     } catch (err: any) {

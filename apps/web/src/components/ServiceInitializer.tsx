@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { enableIndexedDbPersistence, getFirestore } from 'firebase/firestore';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 
 /**
  * ServiceInitializer component that handles service initialization
@@ -37,15 +37,14 @@ const ServiceInitializer: React.FC = () => {
   useEffect(() => {
     if (user) {
       // Set user as online when logged in
-      realtimeDbService.setUserOnlineStatus(true);
+      firebaseAnalyticsService.setUserOnlineStatus(true);
       
       // Set up event listeners for page visibility and unload
       const handleVisibilityChange = () => {
-        realtimeDbService.setUserOnlineStatus(!document.hidden);
+        firebaseAnalyticsService.setUserOnlineStatus(!document.hidden);
       };
-      
-      const handleBeforeUnload = () => {
-        realtimeDbService.setUserOnlineStatus(false);
+        const handleBeforeUnload = () => {
+        firebaseAnalyticsService.setUserOnlineStatus(false);
       };
       
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -56,7 +55,7 @@ const ServiceInitializer: React.FC = () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('beforeunload', handleBeforeUnload);
         // Set user as offline
-        realtimeDbService.setUserOnlineStatus(false);
+        firebaseAnalyticsService.setUserOnlineStatus(false);
       };
     }
   }, [user]);

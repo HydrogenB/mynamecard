@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import { getDatabase } from 'firebase/database';
 
 // Firebase API key for authentication
 const FIREBASE_API_KEY = "AIzaSyB1b0fKw8PCBw-slGJa7N1cMUSNTnaxchY";
@@ -25,7 +24,6 @@ const app = initializeApp(firebaseConfig);
 export const firestore = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const database = getDatabase(app);
 
 // Enable offline persistence for Firestore
 enableIndexedDbPersistence(firestore)

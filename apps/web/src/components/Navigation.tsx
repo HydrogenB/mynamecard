@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
@@ -13,10 +13,9 @@ const Navigation: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
-    try {
-      // Set user offline in Realtime Database
+    try {      // Set user offline in Firestore
       if (user) {
-        await realtimeDbService.setUserOnlineStatus(false);
+        await firebaseAnalyticsService.setUserOnlineStatus(false);
       }
       
       // Sign out from Firebase

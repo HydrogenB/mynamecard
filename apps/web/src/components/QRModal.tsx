@@ -1,17 +1,22 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'qrcode.react';
+import { Card } from '../db/db';
 
 interface QRModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  cardUrl: string;
+  cardUrl?: string;
+  card?: Card;
 }
 
-const QRModal: React.FC<QRModalProps> = ({ isOpen, onClose, cardUrl }) => {
+const QRModal: React.FC<QRModalProps> = ({ isOpen = true, onClose, cardUrl, card }) => {
   const { t } = useTranslation();
   
-  if (!isOpen) return null;
+  // If a Card object is provided, generate the URL
+  const qrUrl = cardUrl || (card ? `${window.location.origin}/card/${card.slug}` : '');
+  
+  if (!isOpen || (!qrUrl && !card)) return null;
   
   const handleDownload = () => {
     const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
@@ -40,10 +45,9 @@ const QRModal: React.FC<QRModalProps> = ({ isOpen, onClose, cardUrl }) => {
         </div>
         
         <div className="p-6 flex flex-col items-center">
-          <div className="bg-white p-4 rounded-lg border mb-4">
-            <QRCode 
+          <div className="bg-white p-4 rounded-lg border mb-4">            <QRCode 
               id="qr-code-canvas"
-              value={cardUrl} 
+              value={qrUrl || ''} 
               size={200}
               bgColor={"#ffffff"}
               fgColor={"#000000"}

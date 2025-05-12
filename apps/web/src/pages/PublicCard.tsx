@@ -6,7 +6,7 @@ import NotFound from './NotFound';
 import { QRCode } from '../design-system';
 import { generateVCard } from '../utils/vcardGenerator';
 import { databaseService } from '../services/databaseService';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import { auth } from '../config/firebase';
 
 // Import the Card type and extend it for our component
@@ -59,15 +59,15 @@ const PublicCard: React.FC = () => {
           };
           setCard(cardWithTheme as unknown as Card);
           
-          // Track the view in Firebase Realtime Database
+          // Track the view in Firestore
           const currentUser = auth.currentUser;
-          await realtimeDbService.logCardView(result.id || slug, {
+          await firebaseAnalyticsService.logCardView(result.id || slug, {
             isAuthenticated: !!currentUser,
             uid: currentUser?.uid
           });
           
           // Update card view statistics
-          await realtimeDbService.updateCardStats(result.id || slug, 'views');
+          await firebaseAnalyticsService.updateCardStats(result.id || slug, 'views');
         } else {
           setError(true);
         }
@@ -134,8 +134,8 @@ const PublicCard: React.FC = () => {
       
       // Track download activity
       if (card.id) {
-        await realtimeDbService.trackCardActivity(card.id, 'download');
-        await realtimeDbService.updateCardStats(card.id, 'downloads');
+        await firebaseAnalyticsService.trackCardActivity(card.id, 'download');
+        await firebaseAnalyticsService.updateCardStats(card.id, 'downloads');
       }
     } catch (error) {
       console.error('Error downloading vCard:', error);

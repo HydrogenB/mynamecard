@@ -5,9 +5,10 @@ import { Card } from '../db/db';
 import LanguageSwitch from '../components/LanguageSwitch';
 import PricingModal from '../components/PricingModal';
 import QRModal from '../components/QRModal';
+import MigrationNotice from '../components/MigrationNotice';
 import { useAuth } from '../contexts/AuthContext';
 import { databaseService } from '../services/databaseService';
-import realtimeDbService from '../services/realtimeDbService';
+import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 
 const Dashboard: React.FC = () => {
@@ -49,7 +50,7 @@ const Dashboard: React.FC = () => {
         // Get stats for each card
         for (const card of fetchedCards) {
           if (card.id) {
-            const cardStat = await realtimeDbService.getCardStats(card.id);
+            const cardStat = await firebaseAnalyticsService.getCardStats(card.id);
             if (cardStat) {
               stats[card.id.toString()] = cardStat;
             } else {
@@ -114,11 +115,10 @@ const Dashboard: React.FC = () => {
   
   const handleShare = async (card: Card) => {
     setShowQR(card);
-    
-    // Track share activity in Realtime Database
+      // Track share activity in Firestore
     if (card.id) {
-      await realtimeDbService.trackCardActivity(card.id, 'share');
-      await realtimeDbService.updateCardStats(card.id, 'shares');
+      await firebaseAnalyticsService.trackCardActivity(card.id, 'share');
+      await firebaseAnalyticsService.updateCardStats(card.id, 'shares');
       
       // Update local stats
       setCardStats(prev => {
@@ -133,10 +133,11 @@ const Dashboard: React.FC = () => {
         };
       });
     }
-  };
-
-  return (
+  };  return (
     <div className="container-card min-h-screen py-8">
+      {/* Migration Notice Component */}
+      <MigrationNotice />
+      
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
