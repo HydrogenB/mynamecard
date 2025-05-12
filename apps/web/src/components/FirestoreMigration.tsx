@@ -2,43 +2,38 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import initializeFirestore from '../utils/initializeFirestore';
 
-interface MigrationResult {
+interface InitializationResult {
   success: boolean;
-  cardStatsCount: number;
-  cardViewsCount: number;
-  cardActivitiesCount: number;
+  collectionsInitialized: string[];
   errors: string[];
 }
 
 /**
- * Component to trigger and display the migration from Realtime Database to Firestore
+ * Component to initialize Firestore collections
  */
-const FirestoreMigration: React.FC = () => {
+const FirestoreInitializer: React.FC = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<MigrationResult | null>(null);
+  const [result, setResult] = useState<InitializationResult | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const runMigration = async () => {
+  
+  const initializeCollections = async () => {
     if (loading) return;
     
     setLoading(true);
     try {
-      const migrationResult = await initializeFirestore();
+      const initResult = await initializeFirestore();
       setResult({
-        success: migrationResult.success,
-        cardStatsCount: 0,
-        cardViewsCount: 0,
-        cardActivitiesCount: migrationResult.collectionsInitialized.length,
-        errors: migrationResult.errors
+        success: initResult.success,
+        collectionsInitialized: initResult.collectionsInitialized,
+        errors: initResult.errors
       });
-      console.log('Migration completed with result:', migrationResult);
+      console.log('Firestore initialization completed with result:', initResult);
     } catch (error) {
-      console.error('Error during migration:', error);
+      console.error('Error during Firestore initialization:', error);
       setResult({
         success: false,
-        cardStatsCount: 0,
-        cardViewsCount: 0,
-        cardActivitiesCount: 0,
+        collectionsInitialized: [],
         errors: [(error as Error).message || 'Unknown error']
       });
     } finally {
@@ -49,16 +44,17 @@ const FirestoreMigration: React.FC = () => {
   if (!expanded) {
     return (
       <div className="bg-gray-50 p-4 rounded-md mb-6 border border-blue-100">
-        <div className="flex justify-between items-center">      <h3 className="text-lg font-medium text-blue-800">Firestore Initialization Tool</h3>
-      <button 
-        onClick={() => setExpanded(true)}
-        className="text-blue-600 hover:text-blue-800"
-      >
-        {t('Show')}
-      </button>
-    </div>
-    <p className="text-sm text-gray-600 mt-1">
-      We've upgraded our database system to Firestore. Click "Show" to initialize the collections.
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium text-blue-800">Firestore Setup</h3>
+          <button 
+            onClick={() => setExpanded(true)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            {t('Show')}
+          </button>
+        </div>
+        <p className="text-sm text-gray-600 mt-1">
+          This tool initializes Firestore collections for your application. Click "Show" to get started.
         </p>
       </div>
     );
@@ -66,23 +62,24 @@ const FirestoreMigration: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-8 border border-blue-200">
-      <div className="flex justify-between items-center mb-4">      <h2 className="text-xl font-semibold text-gray-800">Firestore Initialization Tool</h2>
-      <button
-        onClick={() => setExpanded(false)}
-        className="text-gray-500 hover:text-gray-700"
-      >
-        {t('Hide')}
-      </button>
-    </div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Firestore Setup</h2>
+        <button
+          onClick={() => setExpanded(false)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          {t('Hide')}
+        </button>
+      </div>
     
-    <p className="text-gray-600 mb-6">
-      This tool will initialize the necessary Firestore collections for your application.
-      Your application now uses Firestore for all data storage including analytics and user status.
+      <p className="text-gray-600 mb-6">
+        This tool will initialize the necessary Firestore collections for your application.
+        Your application uses Firestore for all data storage including cards, analytics, and user status.
       </p>
 
       {!result ? (
         <button
-          onClick={runMigration}
+          onClick={initializeCollections}
           disabled={loading}
           className={`w-full py-2 px-4 rounded-md ${
             loading
@@ -96,8 +93,9 @@ const FirestoreMigration: React.FC = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {t('Migrating...')}
-            </>          ) : (
+              {t('Initializing...')}
+            </>
+          ) : (
             t('Initialize Firestore')
           )}
         </button>
@@ -109,9 +107,9 @@ const FirestoreMigration: React.FC = () => {
           
           {result.success && (
             <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>{t('Collections Initialized')}: {result.cardActivitiesCount}</li>
+              <li>{t('Collections Initialized')}: {result.collectionsInitialized.length}</li>
+              <li>{t('Collections')}: {result.collectionsInitialized.join(', ')}</li>
               <li>{t('Storage System')}: Firestore</li>
-              <li>{t('Database Upgraded')}: Yes</li>
             </ul>
           )}
           
@@ -140,4 +138,4 @@ const FirestoreMigration: React.FC = () => {
   );
 };
 
-export default FirestoreMigration;
+export default FirestoreInitializer;

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { enableIndexedDbPersistence, getFirestore } from 'firebase/firestore';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 
 /**
@@ -9,27 +8,9 @@ import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
  * when the application loads
  */
 const ServiceInitializer: React.FC = () => {
-  const { user } = useAuth();
-  // Initialize services when the component mounts
+  const { user } = useAuth();  // Initialize services when the component mounts
   useEffect(() => {
-    // Enable offline persistence for Firestore
-    const enablePersistence = async () => {
-      try {
-        const db = getFirestore();
-        await enableIndexedDbPersistence(db);
-        console.log('Firestore offline persistence enabled');
-      } catch (err: any) {
-        if (err.code === 'failed-precondition') {
-          console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-        } else if (err.code === 'unimplemented') {
-          console.warn('The current browser does not support all of the features required for Firestore persistence.');
-        } else {
-          console.error('Error enabling persistence:', err);
-        }
-      }
-    };
-    
-    enablePersistence();
+    // Firestore is already configured with persistence in firebase.ts
     console.log('Database service initialized with Firestore');
   }, []);
   

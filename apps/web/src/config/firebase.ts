@@ -15,8 +15,8 @@ export const firebaseConfig = {
   storageBucket: "mynamecard-2c393.firebasestorage.app",
   messagingSenderId: "668925791300",
   appId: "1:668925791300:web:b7e475de4fe84c79d98011",
-  measurementId: "G-BR7HTT61FS",
-  databaseURL: "https://mynamecard-2c393-default-rtdb.firebaseio.com"
+  measurementId: "G-BR7HTT61FS"
+  // Removed databaseURL as we're using Firestore exclusively
 };
 
 // Initialize Firebase

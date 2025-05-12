@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
-import migrateToFirestore from '../utils/migrateToFirestore';
+import { migrateToFirestore } from '../utils/migrateToFirestore';
 
 // Key for storing migration state in localStorage
 const MIGRATION_COMPLETE_KEY = 'firestore_migration_complete';
@@ -47,17 +47,15 @@ export const useMigration = () => {
     try {
       // Run the migration utility
       const result = await migrateToFirestore();
-      
-      if (result.success) {
+        if (result.success) {
         // Update migration status in Firestore
         const migrationDoc = doc(firestore, 'migrations', user.uid);
         await setDoc(migrationDoc, {
           complete: true,
           timestamp: new Date(),
           stats: {
-            cardStats: result.cardStatsCount,
-            cardViews: result.cardViewsCount,
-            cardActivities: result.cardActivitiesCount
+            cardsCount: result.cardsCount,
+            errors: result.errors.length > 0 ? result.errors : []
           }
         });
         
