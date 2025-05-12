@@ -5,7 +5,7 @@ import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
 // Firebase API key for authentication
-const FIREBASE_API_KEY = "AIzaSyAnKYbr1YaEL14GtsUcnC7vEmwxx4u6SzM";
+const FIREBASE_API_KEY = "AIzaSyB1b0fKw8PCBw-slGJa7N1cMUSNTnaxchY";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -13,10 +13,10 @@ export const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   authDomain: "mynamecard-2c393.firebaseapp.com",
   projectId: "mynamecard-2c393",
-  storageBucket: "mynamecard-2c393.appspot.com",
-  messagingSenderId: "428846201204",
-  appId: "1:428846201204:web:05306353548d9541d94cbc",
-  measurementId: "G-C78MBVW9G9",
+  storageBucket: "mynamecard-2c393.firebasestorage.app",
+  messagingSenderId: "668925791300",
+  appId: "1:668925791300:web:b7e475de4fe84c79d98011",
+  measurementId: "G-BR7HTT61FS",
   databaseURL: "https://mynamecard-2c393-default-rtdb.firebaseio.com"
 };
 

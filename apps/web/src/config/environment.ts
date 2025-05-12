@@ -13,7 +13,7 @@ export const env: EnvironmentConfig = {
   appEnv: import.meta.env.VITE_APP_ENV || 'development',
   isProduction: import.meta.env.VITE_APP_ENV === 'production',
   isDevelopment: import.meta.env.VITE_APP_ENV !== 'production',
-  firebaseApiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAnKYbr1YaEL14GtsUcnC7vEmwxx4u6SzM',
+  firebaseApiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB1b0fKw8PCBw-slGJa7N1cMUSNTnaxchY',
 };
 
 // Helper function to log environment info (useful for debugging)
