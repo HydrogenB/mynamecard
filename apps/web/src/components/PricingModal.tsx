@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { planUpgradeService } from '../services/planUpgradeService';
@@ -19,10 +19,11 @@ const PricingModal: React.FC<PricingModalProps> = ({
   cardsCreated 
 }) => {
   const { t } = useTranslation();
-  const { currentUser: user } = useAuth();
+  const { user } = useAuth();
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-    const handleUpgrade = async () => {
+  
+  const handleUpgrade = async () => {
     if (!user) return;
     
     setUpgrading(true);
@@ -117,7 +118,8 @@ const PricingModal: React.FC<PricingModalProps> = ({
                 <li>✅ {t('pricingModal.feature4')}</li>
                 <li>✅ {t('pricingModal.feature5')}</li>
               </ul>
-              <p className="font-medium text-lg">$5 / {t('pricingModal.month')}</p>              <button
+              <p className="font-medium text-lg">$5 / {t('pricingModal.month')}</p>
+              <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
                 className={`w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors ${

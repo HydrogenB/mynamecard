@@ -5,7 +5,7 @@ import NotFound from './NotFound';
 // Replace QRCode import with our design system component
 import { QRCode } from '../design-system';
 import { generateVCard } from '../utils/vcardGenerator';
-import { databaseService } from '../services/databaseService';
+import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import { auth } from '../config/firebase';
 
@@ -43,7 +43,7 @@ const PublicCard: React.FC = () => {
         }
         
         // Get the card from Firestore database - use public card method
-        const result = await databaseService.getPublicCardBySlug(slug);
+        const result = await cardService.getCardBySlug(slug);
         
         if (result) {
           // Only display active cards

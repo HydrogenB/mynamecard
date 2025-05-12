@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   increment,
   runTransaction,
-  addDoc
+  addDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
 import { Card } from '../db/db';
@@ -304,5 +305,58 @@ export const cardService = {
       cardLimit,
       cardsRemaining: Math.max(0, cardLimit - cardsCreated)
     };
+  },
+
+  /**
+   * Delete a card
+   */
+  async deleteCard(cardId: string): Promise<void> {
+    const cardRef = doc(firestore, CARDS_COLLECTION, cardId);
+    const cardDoc = await getDoc(cardRef);
+    
+    if (!cardDoc.exists()) {
+      throw new Error('Card not found');
+    }
+    
+    // Get the user ID before deleting
+    const userId = cardDoc.data().userId;
+    
+    // Delete the card
+    await deleteDoc(cardRef);
+    
+    // Delete associated stats
+    try {
+      await deleteDoc(doc(firestore, CARD_STATS_COLLECTION, cardId));
+    } catch (error) {
+      console.warn('Could not delete card stats:', error);
+    }
+    
+    // Update user's cards count if userId exists
+    if (userId) {
+      const userRef = doc(firestore, USERS_COLLECTION, userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const currentCount = userData.cardsCreated || 0;
+        
+        await updateDoc(userRef, {
+          cardsCreated: Math.max(0, currentCount - 1),
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
+  },
+  
+  /**
+   * Toggle card active status
+   */
+  async toggleCardActive(cardId: string, active: boolean): Promise<void> {
+    const cardRef = doc(firestore, CARDS_COLLECTION, cardId);
+    
+    await updateDoc(cardRef, {
+      active,
+      updatedAt: serverTimestamp()
+    });
   }
 };

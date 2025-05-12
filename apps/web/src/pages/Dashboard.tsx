@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../db/db';
 import LanguageSwitch from '../components/LanguageSwitch';
-import PricingModal from '../components/PricingModal';
+import PricingModal from '../components/PricingModalNew';
 import QRModal from '../components/QRModal';
-import MigrationNotice from '../components/MigrationNotice';
+import FirebaseNotice from '../components/FirebaseNotice';
 import { useAuth } from '../contexts/AuthContext';
-import { databaseService } from '../services/databaseService';
+import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
+import useCardLimits from '../hooks/useCardLimits';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -18,8 +19,7 @@ const Dashboard: React.FC = () => {
   const [showPricing, setShowPricing] = useState(false);
   const [showQR, setShowQR] = useState<Card | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
-  const [cardCount, setCardCount] = useState(0);
-  const [cardLimit, setCardLimit] = useState(2); // Default limit
+  const { limits, canCreateCard, refreshLimits } = useCardLimits();
   const [loading, setLoading] = useState(true);
   const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
   const [showMigrationNotice, setShowMigrationNotice] = useState(true);
@@ -33,17 +33,13 @@ const Dashboard: React.FC = () => {
       
       try {
         setLoading(true);
-        
-        // Get user profile to check card limit and plan
-        const userProfile = await userService.getUserProfile(user.uid);
-        if (userProfile) {
-          setCardLimit(userProfile.cardLimit);
-        }
-        
+
         // Load all user cards
-        const fetchedCards = await databaseService.getAllCards();
+        const fetchedCards = await cardService.getUserCards(user.uid);
         setCards(fetchedCards);
-        setCardCount(fetchedCards.length);
+        
+        // Refresh card limits and usage after loading cards
+        await refreshLimits();
         
         // Load card statistics
         const stats: Record<string, {views: number, downloads: number, shares: number}> = {};
@@ -61,11 +57,9 @@ const Dashboard: React.FC = () => {
           }
         }
         
-        setCardStats(stats);
-      } catch (error) {
+        setCardStats(stats);      } catch (error) {
         console.error('Error fetching cards:', error);
         setCards([]);
-        setCardCount(0);
       } finally {
         setLoading(false);
       }
@@ -73,10 +67,9 @@ const Dashboard: React.FC = () => {
     
     loadCards();
   }, [user]);
-  
-  const handleCreateCard = () => {
+    const handleCreateCard = () => {
     // Check if user can create more cards
-    if (cardCount < cardLimit) {
+    if (canCreateCard) {
       navigate('/create');
     } else {
       setShowPricing(true);
@@ -85,32 +78,38 @@ const Dashboard: React.FC = () => {
   
   const handleEditCard = (id: string | number) => {
     navigate(`/edit/${id}`);
-  };
-
-  const handleDeleteCard = async (id: string | number) => {
+  };  const handleDeleteCard = async (id: string | number) => {
     if (window.confirm(t('dashboard.deleteConfirm'))) {
-      const success = await databaseService.deleteCard(id);
-      if (success) {
+      try {
+        // Delete the card using cardService
+        await cardService.deleteCard(id.toString());
+        
         // Update the local state to reflect the deletion
         setCards(prevCards => prevCards.filter(card => card.id !== id));
-        setCardCount(prevCount => prevCount - 1);
+        
+        // Refresh card limits after deletion
+        await refreshLimits();
+      } catch (error) {
+        console.error('Error deleting card:', error);
       }
     }
   };
-  
-  const handleToggleActive = async (card: Card) => {
+    const handleToggleActive = async (card: Card) => {
     if (!card.id) return;
     
     const newActiveStatus = !card.active;
-    const success = await databaseService.toggleCardActive(card.id, newActiveStatus);
     
-    if (success) {
+    try {
+      await cardService.toggleCardActive(card.id, newActiveStatus);
+      
       // Update local card state
       setCards(prevCards => 
         prevCards.map(c => 
           c.id === card.id ? { ...c, active: newActiveStatus } : c
         )
       );
+    } catch (error) {
+      console.error('Error toggling card active state:', error);
     }
   };
   
@@ -135,25 +134,23 @@ const Dashboard: React.FC = () => {
       });
     }
   };  return (
-    <div className="container-card min-h-screen py-8">
-      {/* Migration Notice Component */}
-      <MigrationNotice />
+    <div className="container-card min-h-screen py-8">      {/* Firebase Notice Component */}
+      <FirebaseNotice />
       
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
       </div>
       
-      <div className="mb-4 flex justify-between items-center">
-        <p className="text-sm text-gray-600">
-          {t('dashboard.cardCount', { count: cardCount })} / {cardLimit}
+      <div className="mb-4 flex justify-between items-center">        <p className="text-sm text-gray-600">
+          {t('dashboard.cardCount', { count: limits.cardsCreated })} / {limits.cardLimit}
         </p>
         <button
           onClick={handleCreateCard}
           className={`bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition ${
-            cardCount >= cardLimit ? 'opacity-50 cursor-not-allowed' : ''
+            !canCreateCard ? 'opacity-50 cursor-not-allowed' : ''
           }`}
-          disabled={cardCount >= cardLimit}
+          disabled={!canCreateCard}
         >
           {t('dashboard.createBtn')}
         </button>
@@ -247,14 +244,12 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
-
-      {showPricing && (
+      )}      {showPricing && (
         <PricingModal 
           onClose={() => setShowPricing(false)} 
           onContinue={() => { setShowPricing(false); navigate('/create'); }} 
-          currentLimit={cardLimit}
-          cardsCreated={cardCount}
+          currentLimit={limits.cardLimit}
+          cardsCreated={limits.cardsCreated}
         />
       )}
       

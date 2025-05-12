@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
 import ImageUploader from '../components/ImageUploader';
-import { databaseService } from '../services/databaseService';
+import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,9 +49,8 @@ const CardEditor: React.FC = () => {
     const loadCard = async () => {
       if (!id) return;
       
-      try {
-        // Use database service to get card data (will try Firestore first, then IndexedDB)
-        const card = await databaseService.getCard(Number(id));
+      try {        // Use card service to get card data from Firestore
+        const card = await cardService.getCardById(id);
         
         if (!card) {
           navigate('/dashboard');
@@ -111,13 +110,9 @@ const CardEditor: React.FC = () => {
         } : undefined
       };
       
-      if (isEditMode && id) {
-        // Use database service to update the card in Firestore
-        const success = await databaseService.updateCard(id, cardData);
-        
-        if (!success) {
-          throw new Error('Failed to update card');
-        }
+      if (isEditMode && id) {        // Use card service to update the card in Firestore
+        await cardService.updateCard(id, cardData);
+          // Update successful (no need to check success flag as cardService throws errors)
         
         // Log card update activity in Firebase Realtime Database
         await firebaseAnalyticsService.trackCardActivity(id, 'view');
@@ -156,11 +151,11 @@ const CardEditor: React.FC = () => {
           console.error('Error ensuring user profile exists:', error);
           throw new Error('Failed to verify user profile. Please try logging out and back in.');
         }
-        logDebugInfo('User after profile check', user);
-        // Use database service to create the card in Firestore with detailed error handling
+        logDebugInfo('User after profile check', user);        // Use card service to create the card in Firestore with detailed error handling
         let card;
         try {
-          card = await databaseService.createCard(cardData);
+          const result = await cardService.createCard(cardData);
+          card = { ...cardData, id: result.cardId };
           
           if (!card) {
             throw new Error('Failed to create card - no card data returned');
