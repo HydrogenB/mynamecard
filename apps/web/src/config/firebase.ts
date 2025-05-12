@@ -4,10 +4,13 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
+// Firebase API key for authentication
+const FIREBASE_API_KEY = "AIzaSyAnKYbr1YaEL14GtsUcnC7vEmwxx4u6SzM";
+
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAnKYbr1YaEL14GtsUcnC7vEmwxx4u6SzM",
+  apiKey: FIREBASE_API_KEY,
   authDomain: "mynamecard-2c393.firebaseapp.com",
   projectId: "mynamecard-2c393",
   storageBucket: "mynamecard-2c393.appspot.com",

@@ -14,6 +14,7 @@ The project has been successfully migrated from IndexedDB to Firebase services w
 - ✅ Realtime Database implementation for analytics and user status tracking
 - ✅ Offline persistence enabled with Firestore
 - ✅ Admin configuration for card limits by plan type
+- ✅ Environment configuration for Firebase API keys
 - 🚧 Server-side functions (partially implemented)
 - 🚧 CI/CD pipeline setup in progress
 
@@ -37,6 +38,22 @@ This project is a monorepo containing:
 - `server`: Node.js server (API and server-side rendering)
 
 ## Development Setup
+
+### Environment Variables
+
+The project requires certain environment variables for Firebase configuration:
+
+1. Create or modify `.env`, `.env.development`, and `.env.production` files with your Firebase credentials:
+
+```bash
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_API_URL=https://your-api-url
+VITE_APP_ENV=development or production
+```
+
+2. These environment variables are used in the Firebase configuration (`src/config/firebase.ts`)
+
+> **Important Note**: As of May 12, 2025, the Firebase API key is hard-coded directly in the configuration (`src/config/firebase.ts`) to avoid authentication errors with environment variables not loading properly. This provides a reliable fallback but should be reviewed for production security.
 
 ### Prerequisites
 
@@ -656,3 +673,34 @@ This documentation covers the current architecture, implementation details, and 
 ## License
 
 [MIT License](LICENSE)
+
+## Troubleshooting
+
+### Firebase API Key Error
+
+If you encounter the error `Firebase: Error (auth/api-key-not-valid.-please-pass-a-valid-api-key.)`, ensure that:
+
+1. The Firebase API key is correctly set in your environment files:
+   - `.env`
+   - `.env.development` 
+   - `.env.production`
+
+2. The Firebase configuration in `src/config/firebase.ts` is correctly referencing the environment variable
+
+3. When running locally, make sure the environment variables are being loaded properly by Vite
+
+### Build Errors
+
+For TypeScript errors related to the Typography component:
+- Check that the `index.ts` file is properly exporting from `index.tsx` 
+- Ensure there are no JSX/TSX components in `.ts` files
+
+## Handover Notes
+
+This project is ready for the next phase of development. The following areas require attention:
+
+1. Complete the Firebase Functions implementation for server-side operations
+2. Set up CI/CD pipeline for automated testing and deployment
+3. Implement payment processing for Pro plan upgrades
+4. Add comprehensive test coverage for critical components
+5. Optimize image handling and storage usage
