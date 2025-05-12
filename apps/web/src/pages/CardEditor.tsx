@@ -7,12 +7,30 @@ import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
 import ImageUploader from '../components/ImageUploader';
 import { databaseService } from '../services/databaseService';
 import realtimeDbService from '../services/realtimeDbService';
+import userService from '../services/userService';
+import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../db/db';
 
-const CardEditor: React.FC = () => {
+// Add a debug helper function 
+const logDebugInfo = (title: string, data: any) => {
+  console.log(`DEBUG ${title}:`, data);
+  if (data && typeof data === 'object') {
+    try {
+      // Log keys and some values safely
+      console.log('Keys:', Object.keys(data));
+      if ('uid' in data) console.log('uid:', data.uid);
+      if ('email' in data) console.log('email:', data.email);
+    } catch (e) {
+      console.error('Error logging debug info:', e);
+    }
+  }
+};
+
+const CardEditor: React.FC = () => {  
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user, ensureUserProfile } = useAuth();
   const isEditMode = Boolean(id);
   const [loading, setLoading] = useState(isEditMode);
   const [photoData, setPhotoData] = useState<string | undefined>(undefined);
@@ -113,26 +131,45 @@ const CardEditor: React.FC = () => {
           });
         } catch (err) {
           console.error('Failed to update server cache:', err);
-        }
-      } else {
+        }      } else {
         // Check if the user has reached their card limit
-        const { user } = useAuth();
         if (!user) {
           throw new Error('You must be logged in to create a card');
+        }        
+        logDebugInfo('User before profile check', user);
+        try {
+          // Force create/update user profile before proceeding
+          const profile = await ensureUserProfile(user);
+          console.log('User profile verified or created:', profile);
+          
+          // Wait a moment to ensure Firebase security rules are updated with the new profile
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Double check if user can create a card
+          const canCreate = await userService.canCreateCard(user.uid);
+          if (!canCreate) {
+            alert(t('errors.cardLimitReached'));
+            navigate('/dashboard');
+            return;
+          }
+        } catch (error) {
+          console.error('Error ensuring user profile exists:', error);
+          throw new Error('Failed to verify user profile. Please try logging out and back in.');
         }
-        
-        const canCreate = await userService.canCreateCard(user.uid);
-        if (!canCreate) {
-          alert(t('errors.cardLimitReached'));
-          navigate('/dashboard');
-          return;
-        }
-        
-        // Use database service to create the card in Firestore
-        const card = await databaseService.createCard(cardData);
-        
-        if (!card) {
-          throw new Error('Failed to create card');
+        logDebugInfo('User after profile check', user);
+        // Use database service to create the card in Firestore with detailed error handling
+        let card;
+        try {
+          card = await databaseService.createCard(cardData);
+          
+          if (!card) {
+            throw new Error('Failed to create card - no card data returned');
+          }
+        } catch (cardError: any) {
+          console.error('Detailed card creation error:', cardError);
+          // Enhanced error message with Firebase error code if available
+          const errorCode = cardError?.code ? ` (${cardError.code})` : '';
+          throw new Error(`Failed to create card${errorCode}: ${cardError.message}`);
         }
         
         // Log card creation activity in Firebase Realtime Database
@@ -150,12 +187,39 @@ const CardEditor: React.FC = () => {
         } catch (err) {
           console.error('Failed to update server cache:', err);
         }
-      }
-      
-      navigate('/dashboard');
-    } catch (error) {
+      }        navigate('/dashboard');    } catch (error: any) {
       console.error('Error saving card:', error);
-      alert(t('errors.saveCardFailed'));
+      
+      // Check for specific Firebase permission errors
+      if (error?.code === 'permission-denied') {
+        console.error('Firebase permission denied error:', error);
+        alert(`${t('errors.saveCardFailed')}: You don't have permission to create this card. Please ensure you're logged in with the correct account.`);
+      } 
+      // Check for profile-related errors
+      else if (error?.message?.includes('profile')) {
+        console.error('User profile error:', error);
+        alert(`${t('errors.saveCardFailed')}: Unable to verify your user profile. Please try logging out and back in.`);
+      }
+      // Handle transaction errors (often related to card limit checks)
+      else if (error?.message?.includes('transaction')) {
+        console.error('Transaction error:', error);
+        alert(`${t('errors.saveCardFailed')}: There was a problem with the database transaction. Please try again in a few moments.`);
+      }
+      // Handle card limit errors
+      else if (error?.message?.includes('limit') || error?.message?.includes('maximum')) {
+        console.error('Card limit error:', error);
+        alert(t('errors.cardLimitReached'));
+        navigate('/dashboard');
+        return;
+      }
+      // Generic error with message
+      else {
+        // Show more detailed error message if available
+        const errorMessage = error?.message 
+          ? `${t('errors.saveCardFailed')}: ${error.message}`
+          : t('errors.saveCardFailed');
+        alert(errorMessage);
+      }
     }
   };
 
@@ -228,8 +292,7 @@ const CardEditor: React.FC = () => {
                 )}
               </div>
             </div>
-            
-            <div>
+              <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('form.organization')}
               </label>
@@ -238,6 +301,9 @@ const CardEditor: React.FC = () => {
                 className="w-full border border-gray-300 rounded-md p-2"
                 placeholder={t('form.organization')}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {t('cardEditor.optionalField')}
+              </p>
               {errors.organization && (
                 <p className="text-red-500 text-xs mt-1">
                   {t(errors.organization.message as string)}
@@ -254,6 +320,9 @@ const CardEditor: React.FC = () => {
                 className="w-full border border-gray-300 rounded-md p-2"
                 placeholder={t('form.title')}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {t('cardEditor.optionalField')}
+              </p>
               {errors.title && (
                 <p className="text-red-500 text-xs mt-1">
                   {t(errors.title.message as string)}
@@ -286,8 +355,7 @@ const CardEditor: React.FC = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="font-medium mb-3">{t('cardEditor.contactInfo')}</h2>
           
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-4">            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('form.email')}
               </label>
@@ -297,6 +365,9 @@ const CardEditor: React.FC = () => {
                 className="w-full border border-gray-300 rounded-md p-2"
                 placeholder={t('form.email')}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {t('cardEditor.optionalField')}
+              </p>
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1">
                   {t(errors.email.message as string)}
@@ -313,6 +384,9 @@ const CardEditor: React.FC = () => {
                 className="w-full border border-gray-300 rounded-md p-2"
                 placeholder={t('form.phone')}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {t('cardEditor.optionalField')}
+              </p>
               {errors.phone && (
                 <p className="text-red-500 text-xs mt-1">
                   {t(errors.phone.message as string)}

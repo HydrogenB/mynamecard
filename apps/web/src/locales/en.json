@@ -79,7 +79,9 @@
   },  "errors": {
     "generic": "Something went wrong. Please try again.",
     "notFound": "The card you're looking for doesn't exist.",
-    "serverError": "Server error. Please try again later."
+    "serverError": "Server error. Please try again later.",
+    "saveCardFailed": "Failed to save card. Please try again.",
+    "cardLimitReached": "You've reached your maximum card limit. Please upgrade to create more cards."
   },
   "auth": {
     "signIn": "Sign in to your account",

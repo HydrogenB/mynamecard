@@ -9,10 +9,10 @@ export interface CardAddress {
 export interface CardData {
   firstName: string;
   lastName: string;
-  organization: string;
-  title: string;
-  email: string;
-  phone: string;
+  organization?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
   website?: string;
   address?: CardAddress;
   photo?: string;

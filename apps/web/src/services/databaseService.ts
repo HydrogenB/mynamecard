@@ -66,8 +66,7 @@ export const databaseService = {
    */
   getCurrentUser(): User | null {
     return auth.currentUser;
-  },
-  /**
+  },  /**
    * Create a card with card limit validation
    */
   async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt' | 'active'>): Promise<Card> {
@@ -76,21 +75,50 @@ export const databaseService = {
     if (!user) {
       throw new Error('User must be authenticated to create cards');
     }
-    
-    try {
+      try {
+      // First check if user profile exists outside of transaction
+      // Creating it if necessary to avoid transaction permission issues
+      const userRef = doc(firestore, 'users', user.uid);
+      const profileDoc = await getDoc(userRef);
+      
+      if (!profileDoc.exists()) {
+        console.log('Creating user profile before transaction');
+        // Create a default user profile outside the transaction
+        const defaultUserData = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          plan: 'free',
+          cardLimit: 2, // Default limit of 2 cards
+          cardsCreated: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+        
+        await setDoc(userRef, defaultUserData);
+        
+        // Wait briefly to ensure Firestore has time to process the profile creation
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       // Run in a transaction to ensure card limit is enforced
       return await runTransaction(firestore, async (transaction) => {
         // Get user profile to check card limit
-        const userRef = doc(firestore, 'users', user.uid);
         const userDoc = await transaction.get(userRef);
         
-        if (!userDoc.exists()) {
-          throw new Error('User profile not found');
-        }
+        let cardCount = 0;
+        let cardLimit = 2;
         
-        const userData = userDoc.data();
-        const cardCount = userData.cardsCreated || 0;
-        const cardLimit = userData.cardLimit || 2;
+        if (!userDoc.exists()) {
+          console.error('User profile still not found in transaction, despite creation attempt');
+          throw new Error('User profile could not be created. Please try logging out and back in.');
+        } else {
+          // User profile exists, get the data
+          const userData = userDoc.data();
+          cardCount = userData.cardsCreated || 0;
+          cardLimit = userData.cardLimit || 2;
+        }
         
         // Check if user has reached their card limit
         if (cardCount >= cardLimit) {
@@ -138,8 +166,7 @@ export const databaseService = {
       });
     } catch (error: any) {
       console.error('Error creating card:', error);
-      throw error;
-    }
+      throw error;    }
   },
 
   /**

@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  ensureUserProfile: (user: User) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +29,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  // Function to ensure user profile exists
+  const ensureUserProfile = async (user: User) => {
+    try {
+      let profile = await userService.getUserProfile(user.uid);
+      
+      // If profile doesn't exist, create one
+      if (!profile) {
+        console.log('Creating missing user profile for:', user.uid);
+        profile = await userService.createUserProfile(user);
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error("Error ensuring user profile:", error);
+      throw error;
+    }
+  };
 
   // Listen for auth state changes
   useEffect(() => {
@@ -37,15 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authUser) {
         // Get user profile data from Firestore
         try {
-          const profile = await userService.getUserProfile(authUser.uid);
-          
-          // If profile doesn't exist, create one
-          if (!profile) {
-            const newProfile = await userService.createUserProfile(authUser);
-            setUserProfile(newProfile);
-          } else {
-            setUserProfile(profile);
-          }
+          const profile = await ensureUserProfile(authUser);
+          setUserProfile(profile);
         } catch (error) {
           console.error("Error fetching user profile:", error);
         }
@@ -82,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     await authService.resetPassword(email);
   };
-
   const value = {
     user,
     userProfile,
@@ -91,7 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginWithGoogle,
     register,
     logout,
-    resetPassword
+    resetPassword,
+    ensureUserProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
