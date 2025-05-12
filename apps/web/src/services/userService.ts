@@ -183,6 +183,55 @@ export const userService = {
       console.error('Error updating card limit:', error);
       return false;
     }
+  },
+  
+  /**
+   * Admin function to configure default card limits for plans
+   * This should be used by admins only
+   */
+  async configureCardLimits(limits: { free: number, pro: number }): Promise<boolean> {
+    try {
+      const configRef = doc(firestore, 'admin', 'card_limits');
+      await setDoc(configRef, {
+        free: limits.free,
+        pro: limits.pro,
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error configuring card limits:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Get the default card limits for plans
+   */
+  async getDefaultCardLimits(): Promise<{ free: number, pro: number }> {
+    try {
+      const configRef = doc(firestore, 'admin', 'card_limits');
+      const docSnap = await getDoc(configRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          free: data.free || 2,
+          pro: data.pro || 999
+        };
+      }
+      
+      // Return defaults if not configured
+      return {
+        free: 2,
+        pro: 999
+      };
+    } catch (error) {
+      console.error('Error getting card limits:', error);
+      return {
+        free: 2,
+        pro: 999
+      };
+    }
   }
 };
 

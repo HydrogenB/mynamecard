@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import NotFound from './NotFound';
-import QRCode from 'qrcode.react';
+// Replace QRCode import with our design system component
+import { QRCode } from '../design-system';
 import { generateVCard } from '../utils/vcardGenerator';
 import { databaseService } from '../services/databaseService';
 import realtimeDbService from '../services/realtimeDbService';

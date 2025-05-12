@@ -1,33 +1,51 @@
 import React from 'react';
+import QRCodeReact from 'qrcode.react';
 
 export interface QRCodeProps {
-  url: string;
+  value: string;
+  url?: string; // For backward compatibility
   size?: number;
   className?: string;
   bgColor?: string;
   fgColor?: string;
+  level?: 'L' | 'M' | 'Q' | 'H';
+  includeMargin?: boolean;
+  renderAs?: 'canvas' | 'svg';
+  title?: string;
+  containerClassName?: string;
 }
 
 export const QRCode: React.FC<QRCodeProps> = ({
+  value,
   url,
   size = 200,
   className = '',
   bgColor = '#FFFFFF',
   fgColor = '#000000',
+  level = 'L',
+  includeMargin = false,
+  renderAs = 'canvas',
+  title,
+  containerClassName = '',
 }) => {
-  // In a real implementation, you would use a QR code generation library
-  // like qrcode.react or another solution.
-  // For now, we'll create a placeholder component that can be replaced.
+  // Support both value and url props (url for backwards compatibility)
+  const qrValue = value || url || '';
   
   return (
-    <div 
-      className={`qr-code-container flex items-center justify-center border rounded ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <div className="text-center p-4">
-        <div className="mb-2">[QR Code for URL]</div>
-        <div className="text-xs text-gray-500 truncate max-w-full">{url}</div>
-      </div>
+    <div className={`flex items-center justify-center ${containerClassName}`}>
+      <QRCodeReact
+        value={qrValue}
+        size={size}
+        bgColor={bgColor}
+        fgColor={fgColor}
+        level={level}
+        includeMargin={includeMargin}
+        renderAs={renderAs}
+        className={className}
+      />
+      {title && (
+        <div className="mt-2 text-center text-sm text-gray-600">{title}</div>
+      )}
     </div>
   );
 };

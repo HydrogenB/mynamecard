@@ -9,20 +9,33 @@ import realtimeDbService from '../services/realtimeDbService';
 const UserProfile: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [displayName, setDisplayName] = useState('');
+  const { user } = useAuth();  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [userProfileData, setUserProfileData] = useState<any>(null);
 
   // Load user data
   useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName || '');
-    } else {
-      // Redirect to sign in if not authenticated
-      navigate('/signin');
-    }
+    const loadUserProfile = async () => {
+      if (user) {
+        setDisplayName(user.displayName || '');
+        try {
+          const profileData = await realtimeDbService.getCurrentUser();
+          if (profileData) {
+            const userData = await userService.getUserProfile(user.uid);
+            setUserProfileData(userData);
+          }
+        } catch (err) {
+          console.error("Error loading user profile data:", err);
+        }
+      } else {
+        // Redirect to sign in if not authenticated
+        navigate('/signin');
+      }
+    };
+    
+    loadUserProfile();
   }, [user, navigate]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {

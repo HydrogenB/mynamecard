@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
+import userService from '../services/userService';
 
 interface PricingModalProps {
   onClose: () => void;
@@ -15,6 +17,33 @@ const PricingModal: React.FC<PricingModalProps> = ({
   cardsCreated 
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [upgrading, setUpgrading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const handleUpgrade = async () => {
+    if (!user) return;
+    
+    setUpgrading(true);
+    setError(null);
+    
+    try {
+      // Here you would integrate with your payment processor
+      // For now, we'll just update the user's plan directly
+      const success = await userService.upgradeToPro(user.uid);
+      
+      if (success) {
+        onContinue();
+      } else {
+        setError(t('pricingModal.upgradeError'));
+      }
+    } catch (err: any) {
+      console.error('Error upgrading plan:', err);
+      setError(err.message || t('pricingModal.upgradeError'));
+    } finally {
+      setUpgrading(false);
+    }
+  };
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -79,13 +108,19 @@ const PricingModal: React.FC<PricingModalProps> = ({
                 <li>✅ {t('pricingModal.feature4')}</li>
                 <li>✅ {t('pricingModal.feature5')}</li>
               </ul>
-              <p className="font-medium text-lg">$5 / {t('pricingModal.month')}</p>
-              <button
-                onClick={onContinue}
-                className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
+              <p className="font-medium text-lg">$5 / {t('pricingModal.month')}</p>              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className={`w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors ${
+                  upgrading ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                {t('pricingModal.upgradeBtn')}
+                {upgrading ? t('pricingModal.upgrading') : t('pricingModal.upgradeBtn')}
               </button>
+              
+              {error && (
+                <p className="text-red-500 text-sm mt-2">{error}</p>
+              )}
             </div>
           </div>
         </div>

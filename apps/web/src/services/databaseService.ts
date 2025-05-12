@@ -2,7 +2,6 @@
 import { Card } from '../db/db';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
-import userService from './userService';
 import {
   collection,
   doc,
@@ -68,9 +67,8 @@ export const databaseService = {
   getCurrentUser(): User | null {
     return auth.currentUser;
   },
-
   /**
-   * Create a card
+   * Create a card with card limit validation
    */
   async createCard(card: Omit<Card, 'id' | 'createdAt' | 'updatedAt' | 'active'>): Promise<Card> {
     const user = this.getCurrentUser();
@@ -79,47 +77,69 @@ export const databaseService = {
       throw new Error('User must be authenticated to create cards');
     }
     
-    // Check if user has reached their card limit
-    const canCreate = await userService.canCreateCard(user.uid);
-    if (!canCreate) {
-      throw new Error('You have reached your maximum number of cards. Please upgrade or delete existing cards.');
+    try {
+      // Run in a transaction to ensure card limit is enforced
+      return await runTransaction(firestore, async (transaction) => {
+        // Get user profile to check card limit
+        const userRef = doc(firestore, 'users', user.uid);
+        const userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists()) {
+          throw new Error('User profile not found');
+        }
+        
+        const userData = userDoc.data();
+        const cardCount = userData.cardsCreated || 0;
+        const cardLimit = userData.cardLimit || 2;
+        
+        // Check if user has reached their card limit
+        if (cardCount >= cardLimit) {
+          throw new Error(`You have reached your maximum limit of ${cardLimit} cards. Please upgrade your plan or delete existing cards.`);
+        }
+        
+        // Check if slug is unique
+        const slugQuery = query(collection(firestore, COLLECTION_NAME), where('slug', '==', card.slug));
+        const slugDocs = await getDocs(slugQuery);
+        
+        if (!slugDocs.empty) {
+          throw new Error('Card slug already exists. Please choose a different slug.');
+        }
+        
+        // Create a new document reference
+        const docRef = doc(collection(firestore, COLLECTION_NAME));
+        
+        // Prepare card data with timestamps, user ID, and default active state
+        const newCard = {
+          ...card,
+          userId: user.uid,
+          active: true, // Cards are active by default
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+        
+        // Write to Firestore within the transaction
+        transaction.set(docRef, newCard);
+        
+        // Increment the user's card count within the same transaction
+        transaction.update(userRef, {
+          cardsCreated: cardCount + 1,
+          updatedAt: serverTimestamp()
+        });
+        
+        // Return the card with ID
+        return {
+          ...card,
+          id: docRef.id,
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: user.uid
+        } as Card;
+      });
+    } catch (error: any) {
+      console.error('Error creating card:', error);
+      throw error;
     }
-    
-    // Check if slug is unique
-    const isUnique = await isSlugUnique(card.slug);
-    if (!isUnique) {
-      throw new Error('Card slug already exists');
-    }
-    
-    // Create a new document reference
-    const docRef = doc(collection(firestore, COLLECTION_NAME));
-    
-    // Prepare card data with timestamps, user ID, and default active state
-    const newCard = {
-      ...card,
-      userId: user.uid,
-      active: true, // Cards are active by default
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    // Write to Firestore
-    await setDoc(docRef, newCard);
-    
-    // Increment the user's card count
-    await userService.incrementCardsCreated(user.uid);
-    
-    // Return the card with ID and convert timestamps
-    const createdCard = {
-      ...card,
-      id: docRef.id,
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userId: user.uid
-    };
-    
-    return createdCard as Card;
   },
 
   /**
@@ -246,9 +266,8 @@ export const databaseService = {
     
     return true;
   },
-
   /**
-   * Delete a card
+   * Delete a card with transaction safety
    */
   async deleteCard(id: string | number): Promise<boolean> {
     const user = this.getCurrentUser();
@@ -257,30 +276,51 @@ export const databaseService = {
       throw new Error('User must be authenticated to delete cards');
     }
     
-    // Convert number id to string if necessary
-    const cardId = typeof id === 'number' ? id.toString() : id;
-    
-    // Get the card to check ownership
-    const docRef = doc(firestore, COLLECTION_NAME, cardId);
-    const docSnap = await getDoc(docRef);
-    
-    if (!docSnap.exists()) {
-      return false;
+    try {
+      // Convert number id to string if necessary
+      const cardId = typeof id === 'number' ? id.toString() : id;
+      
+      return await runTransaction(firestore, async (transaction) => {
+        // Get the card to check ownership
+        const cardRef = doc(firestore, COLLECTION_NAME, cardId);
+        const cardDoc = await transaction.get(cardRef);
+        
+        if (!cardDoc.exists()) {
+          throw new Error('Card not found');
+        }
+        
+        // Check if user owns this card
+        const cardData = cardDoc.data();
+        if (cardData.userId !== user.uid) {
+          throw new Error('You do not have permission to delete this card');
+        }
+        
+        // Get user profile to update card count
+        const userRef = doc(firestore, 'users', user.uid);
+        const userDoc = await transaction.get(userRef);
+        
+        if (!userDoc.exists()) {
+          throw new Error('User profile not found');
+        }
+        
+        const userData = userDoc.data();
+        const cardCount = userData.cardsCreated || 0;
+        
+        // Delete card from Firestore within transaction
+        transaction.delete(cardRef);
+        
+        // Decrement the user's card count within the same transaction
+        transaction.update(userRef, {
+          cardsCreated: Math.max(0, cardCount - 1), // Ensure we don't go below 0
+          updatedAt: serverTimestamp()
+        });
+        
+        return true;
+      });
+    } catch (error: any) {
+      console.error('Error deleting card:', error);
+      throw error;
     }
-    
-    // Check if user owns this card
-    const cardData = docSnap.data();
-    if (cardData.userId !== user.uid) {
-      throw new Error('You do not have permission to delete this card');
-    }
-    
-    // Delete from Firestore
-    await deleteDoc(docRef);
-    
-    // Decrement the user's card count
-    await userService.decrementCardsCreated(user.uid);
-    
-    return true;
   },
 
   /**

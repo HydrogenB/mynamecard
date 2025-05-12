@@ -7,4 +7,3 @@ export * from './Badge';
 export * from './Layout';
 export * from './StatusIndicator';
 export * from './QRCode';
-export * from './LanguageSwitch';

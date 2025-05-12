@@ -4,9 +4,14 @@
   "private": true,
   "workspaces": [
     "apps/web",
-    "server"  ],  "scripts": {    "dev": "concurrently \"npm run --prefix ./apps/web dev\" \"npm run --prefix ./server dev\"",    "build": "echo \"Skipping web build, building server only...\" && cd server && npm run build",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run --prefix ./apps/web dev\" \"npm run --prefix ./server dev\"",
+    "build": "echo \"Skipping web build, building server only...\" && cd server && npm run build",
     "build:all": "echo \"Building web app...\" && cd apps/web && npm run build",
-    "build:firebase": "cd apps/web && npm run build && echo \"Web build completed\"",    "deploy": "cd apps/web && npm run build && cd ../.. && firebase deploy --only hosting",
+    "build:firebase": "cd apps/web && npm run build && echo \"Web build completed\"",
+    "deploy": "cd apps/web && npm run build && cd ../.. && firebase deploy --only hosting",
     "deploy:all": "npm run build:firebase && firebase deploy --only hosting",
     "deploy:functions": "cd server && npm run build:firebase && cd .. && firebase deploy --only functions",
     "emulate": "npm run build:firebase && firebase emulators:start",
@@ -17,18 +22,18 @@
     "preview": "npm run --prefix ./server start"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.0",
     "@typescript-eslint/eslint-plugin": "^6.3.0",
     "@typescript-eslint/parser": "^6.3.0",
-    "@playwright/test": "^1.40.0",
     "concurrently": "^8.2.0",
     "eslint": "^8.46.0",
     "eslint-plugin-react": "^7.33.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "lighthouse": "^11.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.1.6",
     "vitest": "^0.34.0"
   },
-  "dependencies": {},
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"

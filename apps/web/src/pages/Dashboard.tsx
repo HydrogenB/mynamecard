@@ -21,8 +21,7 @@ const Dashboard: React.FC = () => {
   const [cardLimit, setCardLimit] = useState(2); // Default limit
   const [loading, setLoading] = useState(true);
   const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
-  
-  // Load cards from Firestore
+    // Load cards from Firestore
   useEffect(() => {
     const loadCards = async () => {
       if (!user) {
@@ -32,16 +31,17 @@ const Dashboard: React.FC = () => {
       
       try {
         setLoading(true);
-        const fetchedCards = await databaseService.getAllCards();
-        const count = await databaseService.getCardCount();
-        setCards(fetchedCards);
-        setCardCount(count);
         
-        // Get user profile to check card limit
+        // Get user profile to check card limit and plan
         const userProfile = await userService.getUserProfile(user.uid);
         if (userProfile) {
           setCardLimit(userProfile.cardLimit);
         }
+        
+        // Load all user cards
+        const fetchedCards = await databaseService.getAllCards();
+        setCards(fetchedCards);
+        setCardCount(fetchedCards.length);
         
         // Load card statistics
         const stats: Record<string, {views: number, downloads: number, shares: number}> = {};
@@ -52,6 +52,9 @@ const Dashboard: React.FC = () => {
             const cardStat = await realtimeDbService.getCardStats(card.id);
             if (cardStat) {
               stats[card.id.toString()] = cardStat;
+            } else {
+              // Initialize with zero stats if none found
+              stats[card.id.toString()] = { views: 0, downloads: 0, shares: 0 };
             }
           }
         }

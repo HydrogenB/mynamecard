@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * SignIn component that handles both sign in and sign up
@@ -10,17 +9,24 @@ import { useNavigate } from 'react-router-dom';
 const SignIn: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user, loading: authLoading, login, loginWithGoogle, register } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const toggleMode = () => {
     setMode(mode === 'signin' ? 'signup' : 'signin');
     setError(null);
   };
-
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -28,9 +34,9 @@ const SignIn: React.FC = () => {
 
     try {
       if (mode === 'signin') {
-        await signInWithEmailAndPassword(auth, email, password);
+        await login(email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await register(email, password);
       }
       navigate('/dashboard');
     } catch (err: any) {
@@ -46,8 +52,7 @@ const SignIn: React.FC = () => {
     setError(null);
 
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await loginWithGoogle();
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Google sign-in error:', err);

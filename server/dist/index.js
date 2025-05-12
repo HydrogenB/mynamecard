@@ -21,6 +21,9 @@ app.use((0, cors_1.default)());
 app.use((0, compression_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.static(path_1.default.resolve(__dirname, '../../apps/web/dist')));
+// Configuration values (would normally be in .env file)
+const DEFAULT_CARD_LIMIT = 2;
+const PRO_USER_CARD_LIMIT = 10;
 // API endpoints
 app.get('/api/vcf/:slug', (req, res) => {
     const { slug } = req.params;
@@ -31,16 +34,22 @@ app.get('/api/vcf/:slug', (req, res) => {
     const vcf = (0, vcardService_1.generateVCard)(card);
     res.setHeader('Content-Type', 'text/vcard; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${slug}.vcf"`);
-    res.send(vcf);
+    return res.send(vcf);
 });
 // Register or update a card
 app.post('/api/cards', (req, res) => {
-    const { slug, data } = req.body;
+    const { slug, data, userId } = req.body;
     if (!slug || !data) {
         return res.status(400).send('Invalid card data');
     }
+    // Ensure card has an active status field
+    if (data.active === undefined) {
+        data.active = true; // Default to active
+    }
+    // In a real implementation, we would verify the user token here
+    // and check if they've reached their card limit
     cardCache.set(slug, data);
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
 });
 // Public card route (SSR)
 app.get('/:slug', (req, res) => {
@@ -49,8 +58,27 @@ app.get('/:slug', (req, res) => {
     if (!card) {
         return res.redirect('/');
     }
+    // Check if card is active
+    if (card.active === false) {
+        return res.redirect('/');
+    }
     const html = (0, ssrService_1.renderCardHTML)(card, slug);
     res.send(html);
+});
+// Admin API to update user card limits
+app.post('/api/admin/card-limits', (req, res) => {
+    const { apiKey, userId, newLimit } = req.body;
+    // Very basic admin API key check (would be much more secure in production)
+    const adminApiKey = process.env.ADMIN_API_KEY || 'secret-admin-key';
+    if (apiKey !== adminApiKey) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    if (!userId || typeof newLimit !== 'number') {
+        return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    // Update the user's card limit (in a real app, this would update the database)
+    console.log(`Updated card limit for user ${userId} to ${newLimit}`);
+    return res.status(200).json({ success: true });
 });
 // Fallback route to index.html for SPA
 app.get('*', (req, res) => {

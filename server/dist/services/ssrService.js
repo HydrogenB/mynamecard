@@ -2,12 +2,31 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.renderCardHTML = renderCardHTML;
 function renderCardHTML(card, slug) {
+    // Use card.slug as fallback if slug parameter is not provided
+    const cardSlug = slug || card.slug || '';
+    // Don't render inactive cards - redirect to homepage
+    if (card.active === false) {
+        return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta http-equiv="refresh" content="0;url=/" />
+          <title>Redirecting...</title>
+        </head>
+        <body>
+          <p>This card is not active. Redirecting to homepage...</p>
+          <script>window.location.href = "/";</script>
+        </body>
+      </html>
+    `;
+    }
     // Generate Open Graph tags for SEO
     const ogTags = `
     <meta property="og:title" content="${card.firstName} ${card.lastName}" />
     <meta property="og:description" content="${card.title} at ${card.organization}" />
     <meta property="og:type" content="profile" />
-    <meta property="og:url" content="http://localhost:3000/${slug}" />
+    <meta property="og:url" content="http://localhost:3000/${cardSlug}" />
     ${card.photo ? `<meta property="og:image" content="${card.photo}" />` : ''}
   `;
     // Use the client hydration approach - inject data that will be picked up by the client

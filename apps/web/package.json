@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "configure-limits": "ts-node src/scripts/configureCardLimits.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.2.0",
