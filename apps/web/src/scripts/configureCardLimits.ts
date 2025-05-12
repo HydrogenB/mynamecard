@@ -5,6 +5,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '../config/firebase';
+import * as process from 'process';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -23,9 +24,8 @@ async function configureCardLimits() {
     };
     
     console.log('Setting default card limits:', cardLimits);
-    
-    // Store in Firestore admin collection
-    const configRef = doc(firestore, 'admin', 'card_limits');
+      // Store in Firestore system_config collection
+    const configRef = doc(firestore, 'system_config', 'card_limits');
     await setDoc(configRef, cardLimits);
     
     console.log('Default card limits configured successfully!');
