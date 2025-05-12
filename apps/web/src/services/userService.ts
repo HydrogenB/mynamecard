@@ -3,13 +3,14 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp,
-  collection,
-  getDocs,
-  query,
-  where,
-  increment,
-  Firestore
+  serverTimestamp
+  // The following imports were removed as they're unused
+  // collection,
+  // getDocs,
+  // query,
+  // where,
+  // increment,
+  // Firestore
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -57,11 +58,11 @@ export const userService = {
     };
     
     await setDoc(userRef, userData);
-    
-    return {
+      return {
       ...userData,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      lastSeen: new Date() // Convert to Date instead of FieldValue
     };
   },
   
@@ -102,11 +103,10 @@ export const userService = {
       return false;
     }
   },
-  
-  /**
-   * Upgrade user to Pro plan
+    /**
+   * Upgrade user to Pro plan (simple version without payment)
    */
-  async upgradeToPro(uid: string): Promise<boolean> {
+  async upgradeUserToPro(uid: string): Promise<boolean> {
     const userRef = doc(firestore, COLLECTION_NAME, uid);
     
     try {
@@ -123,7 +123,7 @@ export const userService = {
   },
   
   /**
-   * Upgrade user's plan to Pro
+   * Upgrade user's plan to Pro with payment
    */
   async upgradeToPro(uid: string, paymentToken: string): Promise<{ plan: string; cardLimit: number }> {
     try {

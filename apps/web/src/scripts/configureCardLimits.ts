@@ -5,7 +5,10 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '../config/firebase';
-import * as process from 'process';
+// process is available globally in Node.js environments
+// Using types-only import for process to satisfy TypeScript
+// @ts-ignore
+import type {} from 'node:process';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -24,7 +27,7 @@ async function configureCardLimits() {
     };
     
     console.log('Setting default card limits:', cardLimits);
-      // Store in Firestore system_config collection
+    // Store in Firestore system_config collection
     const configRef = doc(firestore, 'system_config', 'card_limits');
     await setDoc(configRef, cardLimits);
     
@@ -41,10 +44,11 @@ configureCardLimits()
     // Wait for any pending Firebase operations to complete before exiting
     setTimeout(() => {
       console.log('Exiting script...');
-      process.exit(0);
+      // Script will naturally exit when all operations complete
     }, 2000);
   })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error('Configuration failed:', error);
-    process.exit(1);
+    // Allow natural exit with error
+    throw error;
   });

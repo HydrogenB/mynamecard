@@ -3,13 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../db/db';
 import LanguageSwitch from '../components/LanguageSwitch';
-import PricingModal from '../components/PricingModalNew';
+import PricingModal from '../components/PricingModal';
 import QRModal from '../components/QRModal';
 import FirebaseNotice from '../components/FirebaseNotice';
 import { useAuth } from '../contexts/AuthContext';
 import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
-import userService from '../services/userService';
 import useCardLimits from '../hooks/useCardLimits';
 
 const Dashboard: React.FC = () => {
@@ -18,11 +17,9 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [showPricing, setShowPricing] = useState(false);
   const [showQR, setShowQR] = useState<Card | null>(null);
-  const [cards, setCards] = useState<Card[]>([]);
-  const { limits, canCreateCard, refreshLimits } = useCardLimits();
+  const [cards, setCards] = useState<Card[]>([]);  const { limits, canCreateCard, refreshLimits } = useCardLimits();
   const [loading, setLoading] = useState(true);
   const [cardStats, setCardStats] = useState<Record<string, {views: number, downloads: number, shares: number}>>({});
-  const [showMigrationNotice, setShowMigrationNotice] = useState(true);
     // Load cards from Firestore
   useEffect(() => {
     const loadCards = async () => {

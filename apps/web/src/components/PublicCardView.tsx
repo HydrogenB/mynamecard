@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../db/db';
-import { cardService } from '../services/cardService';
 import useCardAnalytics from '../hooks/useCardAnalytics';
 import { downloadVCard } from '../utils/vCardDownloader';
 import useCardSharing from '../hooks/useCardSharing';

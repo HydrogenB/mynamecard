@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Define the structure of the environment variables
 interface EnvironmentConfig {
   apiUrl: string;

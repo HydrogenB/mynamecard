@@ -6,10 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 /**
  * SignIn component that handles both sign in and sign up
  */
-const SignIn: React.FC = () => {
-  const { t } = useTranslation();
+const SignIn: React.FC = () => {  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, loading: authLoading, login, loginWithGoogle, register } = useAuth();
+  const { user, login, loginWithGoogle, register } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

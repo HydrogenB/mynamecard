@@ -5,6 +5,7 @@ type Language = 'en' | 'th';
 
 interface LanguageContextType {
   language: Language;
+  setLanguage: (lang: Language) => void;
   changeLanguage: (lang: Language) => void;
 }
 
@@ -27,9 +28,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       changeLanguage(savedLanguage);
     }
   }, [changeLanguage]);
-
   return (
-    <LanguageContext.Provider value={{ language, changeLanguage }}>
+    <LanguageContext.Provider value={{ language, setLanguage, changeLanguage }}>
       {children}
     </LanguageContext.Provider>
   );

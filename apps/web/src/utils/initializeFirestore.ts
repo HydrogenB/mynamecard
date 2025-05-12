@@ -2,15 +2,15 @@
 import {
   collection,
   doc,
-  setDoc,
+  // setDoc removed as unused
   writeBatch,
-  serverTimestamp,
-  deleteDoc
+  serverTimestamp
+  // deleteDoc removed as unused
 } from 'firebase/firestore';
 import { firestore, auth } from '../config/firebase';
 
 // Collection names
-const USERS_COLLECTION = 'users';
+// USERS_COLLECTION removed as unused
 const CARDS_COLLECTION = 'cards';
 const ADMIN_COLLECTION = 'admin';
 const STATS_COLLECTION = 'cardStats';

@@ -2,9 +2,9 @@
 // It creates a vCard format string according to RFC 6350
 // https://datatracker.ietf.org/doc/html/rfc6350
 
-import { Card } from '../db/db';
+import { Card, SocialMedia } from '../db/db';
 
-export function generateVCard(card: Card): string {
+export function generateVCard(card: Card & { socialMedia?: SocialMedia }): string {
   let vcard = [];
   
   // Helper function to escape special characters in vCard fields

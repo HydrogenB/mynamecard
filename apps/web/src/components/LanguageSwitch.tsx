@@ -5,10 +5,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 const LanguageSwitch: React.FC = () => {
   const { i18n } = useTranslation();
   const { language, setLanguage } = useLanguage();
-  
-  const handleLanguageChange = (lang: string) => {
+    const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
-    setLanguage(lang);
+    setLanguage(lang as 'en' | 'th');
   };
   
   return (

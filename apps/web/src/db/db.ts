@@ -21,6 +21,13 @@ export interface CardAddress {
   country: string;
 }
 
+export interface SocialMedia {
+  linkedin?: string;
+  twitter?: string;
+  facebook?: string;
+  instagram?: string;
+}
+
 export interface Card {
   id?: string;
   slug: string;
@@ -39,6 +46,7 @@ export interface Card {
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
+  socialMedia?: SocialMedia;
 }
 
 // Helper to convert Firestore data to our Card type

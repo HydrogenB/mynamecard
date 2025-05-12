@@ -8,7 +8,7 @@ import {
   setDoc,
   getDoc,
   getDocs,
-  deleteDoc,
+  // deleteDoc removed as it's unused
   updateDoc,
   serverTimestamp,
   Timestamp,

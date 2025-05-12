@@ -69,9 +69,8 @@ const QRModal: React.FC<QRModalProps> = ({ isOpen = true, onClose, cardUrl, card
                 value={cardUrl}
                 className="border rounded-l px-3 py-2 w-full text-sm bg-gray-50"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                onClick={() => navigator.clipboard.writeText(cardUrl)}
+              />              <button
+                onClick={() => cardUrl && navigator.clipboard.writeText(cardUrl)}
                 className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-r border-y border-r"
                 title={t('qrModal.copyToClipboard')}
               >

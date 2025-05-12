@@ -9,22 +9,19 @@ import { userService } from '../services/userService';
 const UserProfile: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();  const [displayName, setDisplayName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();  const [displayName, setDisplayName] = useState('');  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [userProfileData, setUserProfileData] = useState<any>(null);
 
   // Load user data
   useEffect(() => {
     const loadUserProfile = async () => {
       if (user) {
         setDisplayName(user.displayName || '');
-        try {
-          const profileData = firebaseAnalyticsService.getCurrentUser();
+        try {          const profileData = firebaseAnalyticsService.getCurrentUser();
           if (profileData) {
-            const userData = await userService.getUserProfile(user.uid);
-            setUserProfileData(userData);
+            await userService.getUserProfile(user.uid);
+            // We don't need to store the profile data
           }
         } catch (err) {
           console.error("Error loading user profile data:", err);

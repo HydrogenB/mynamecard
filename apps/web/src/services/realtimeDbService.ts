@@ -1,7 +1,6 @@
-import { getDatabase, ref, set, get, remove, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, set, get } from 'firebase/database';
 import { User } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { Card } from '../db/db';
 
 // Initialize Firebase Realtime Database
 const database = getDatabase();

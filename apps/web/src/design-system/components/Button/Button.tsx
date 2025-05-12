@@ -1,5 +1,4 @@
 import React from 'react';
-import { colors } from '../../tokens/colors';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
 type ButtonSize = 'sm' | 'md' | 'lg';

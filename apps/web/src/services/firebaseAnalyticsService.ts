@@ -4,13 +4,13 @@ import {
   doc,
   setDoc,
   getDoc,
-  getDocs,
-  query,
-  where,
+  // getDocs removed as unused
+  // query removed as unused
+  // where removed as unused
   updateDoc,
   arrayUnion,
   increment,
-  Timestamp,
+  // Timestamp removed as unused
   serverTimestamp
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';

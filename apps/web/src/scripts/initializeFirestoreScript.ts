@@ -6,11 +6,15 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '../config/firebase';
 import initializeFirestore from '../utils/initializeFirestore';
-import * as process from 'process';
+// process is available globally in Node.js environments
+// Using types-only import for process to satisfy TypeScript
+// @ts-ignore
+import type {} from 'node:process';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const firestore = getFirestore(app);
+// Initialize Firestore (even though we're not directly using it in this file)
+getFirestore(app);
 
 /**
  * Run the initialization process
@@ -41,10 +45,12 @@ initializeFirestoreCollections()
     // Wait for any pending Firebase operations to complete before exiting
     setTimeout(() => {
       console.log('Exiting script...');
-      process.exit(0);
+      // Script will naturally exit when all operations complete
+      // In Node.js environments, you would use process.exit(0) here
     }, 2000);
   })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error('Script execution failed:', error);
-    process.exit(1);
+    // Allow natural exit with error
+    throw error;
   });

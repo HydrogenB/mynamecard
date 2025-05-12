@@ -10,9 +10,8 @@ i18n
   .init({
     resources: {
       en: { translation: en },
-      th: { translation: th }
-    },    fallbackLng: 'en',
-    debug: process.env.NODE_ENV === 'development',
+      th: { translation: th }    },    fallbackLng: 'en',
+    debug: import.meta.env.MODE === 'development',
     interpolation: {
       escapeValue: false // React already safes from XSS
     }

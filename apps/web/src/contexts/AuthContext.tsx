@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: any | null;
   loading: boolean;
+  currentUser: User | null; // Added for backwards compatibility
   login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<User>;
   register: (email: string, password: string) => Promise<User>;
@@ -92,11 +93,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     await authService.resetPassword(email);
-  };
-  const value = {
+  };  const value = {
     user,
     userProfile,
     loading,
+    currentUser: user, // Added for backwards compatibility
     login,
     loginWithGoogle,
     register,

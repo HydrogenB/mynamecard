@@ -9,7 +9,6 @@ import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
-import { Card } from '../db/db';
 
 // Add a debug helper function 
 const logDebugInfo = (title: string, data: any) => {
