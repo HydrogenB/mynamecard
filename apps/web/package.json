@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "vitest run",
-    "configure-limits": "ts-node src/scripts/configureCardLimits.ts"
+    "configure-limits": "ts-node src/scripts/configureCardLimits.ts",
+    "initialize-firestore": "ts-node src/scripts/initializeFirestoreScript.ts",
+    "setup-firestore": "npm run initialize-firestore && npm run configure-limits",
+    "migrate-data": "ts-node src/utils/migrateToFirestore.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.2.0",

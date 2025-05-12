@@ -38,7 +38,11 @@ async function configureCardLimits() {
 configureCardLimits()
   .then(() => {
     console.log('Configuration complete');
-    process.exit(0);
+    // Wait for any pending Firebase operations to complete before exiting
+    setTimeout(() => {
+      console.log('Exiting script...');
+      process.exit(0);
+    }, 2000);
   })
   .catch((error) => {
     console.error('Configuration failed:', error);
