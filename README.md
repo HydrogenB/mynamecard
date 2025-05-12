@@ -4,12 +4,16 @@ A digital business card application that allows users to create, manage, and sha
 
 ## Current Status
 
-The project has been successfully migrated from IndexedDB to Firebase services:
+The project has been successfully migrated from IndexedDB to Firebase services with enhanced security and user management:
 
-- ✅ User authentication implemented with Firebase Auth 
+- ✅ User authentication implemented with Firebase Auth
+- ✅ Proper user card limit enforcement (2 cards max for free users, configurable server-side)
+- ✅ Enhanced security with Firestore rules for user ownership validation
+- ✅ Transactional database operations for data consistency
 - ✅ Firestore integration for card data storage and management
 - ✅ Realtime Database implementation for analytics and user status tracking
 - ✅ Offline persistence enabled with Firestore
+- ✅ Admin configuration for card limits by plan type
 - 🚧 Server-side functions (partially implemented)
 - 🚧 CI/CD pipeline setup in progress
 
@@ -177,17 +181,19 @@ The vCard generator creates vCards with:
 The application uses Firebase Authentication for user management:
 - Email and password authentication
 - Google OAuth sign-in
-- Secure session management
-- Profile information management
+- Secure session management with AuthContext provider
+- Automatic user profile creation and management
+- Protected routes with authentication checks
 
 ### Security Rules
 
 Access to data is protected by Firebase Security Rules:
-- Firestore rules enforce user-based read/write permissions
+- Comprehensive Firestore rules with helper functions for validation
+- Card ownership validation to ensure users can only modify their own cards
+- Card limit enforcement at the database level (default: 2 cards for free users)
+- Public cards are accessible without authentication through specific queries
 - Realtime Database rules protect analytics and user status data
-- Public cards are accessible without authentication
-- User can only modify their own cards
-- Notes/additional information
+- Server-side configuration for plan limits and features
 
 ## Deployment Guide
 
@@ -365,13 +371,14 @@ app.get('/api/vcf/:slug', (req, res) => {
 export const api = functions.https.onRequest(app);
 ```
 
-#### 2. Database Service Architecture
+#### 3. Database Service Architecture
 
 The application uses two complementary Firebase database services:
 
 1. **Firestore Service**: Core data persistence for cards
-   - CRUD operations for name cards
-   - User-specific card management
+   - CRUD operations for name cards with transactional consistency
+   - User-specific card management with ownership validation
+   - Card limit enforcement (2 cards for free users by default)
    - Offline persistence capabilities
    
 2. **Realtime Database Service**: Analytics and real-time features
@@ -405,6 +412,7 @@ firestore:
   │   ├── notes: string (optional)
   │   ├── theme: string
   │   ├── userId: string - Reference to authenticated user
+  │   ├── active: boolean - Card visibility status
   │   ├── createdAt: timestamp
   │   └── updatedAt: timestamp
   │
@@ -415,7 +423,14 @@ firestore:
       ├── photoURL: string (optional)
       ├── plan: string ('free' | 'pro')
       ├── cardLimit: number
+      ├── cardsCreated: number
       ├── createdAt: timestamp
+      └── updatedAt: timestamp
+  │
+  admin/
+  ├── card_limits/
+      ├── free: number
+      ├── pro: number
       └── updatedAt: timestamp
 
 realtime-database:
@@ -453,15 +468,6 @@ realtime-database:
 #### Firestore Security Rules
 
 ```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Cards collection rules
-    match /cards/{cardId} {
-      // Allow read access for public cards to anyone
-      allow read: if resource.data.isPublic == true;
-      
-      // Allow read access for user's own cards
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
       
       // Allow create for authenticated users
