@@ -81,7 +81,8 @@
     "notFound": "The card you're looking for doesn't exist.",
     "serverError": "Server error. Please try again later.",
     "saveCardFailed": "Failed to save card. Please try again.",
-    "cardLimitReached": "You've reached your maximum card limit. Please upgrade to create more cards."
+    "cardLimitReached": "You've reached your maximum card limit. Please upgrade to create more cards.",
+    "loginRequired": "You must be logged in to create a card."
   },
   "auth": {
     "signIn": "Sign in to your account",

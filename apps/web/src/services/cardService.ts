@@ -27,83 +27,119 @@ const SYSTEM_CONFIG_COLLECTION = 'system_config';
 /**
  * Card Service - Handles all card-related operations with Firestore
  */
-export const cardService = {
-  /**
+export const cardService = {  /**
    * Create a new card
    */
   async createCard(cardData: Omit<Card, 'id' | 'createdAt' | 'updatedAt' | 'active'>): Promise<{ cardId: string }> {
+    // Validate userId existence (prevent invalid document references)
+    if (!cardData.userId) {
+      throw new Error('User ID is required');
+    }
+    
     // Get user first to check limits
-    const userRef = doc(firestore, USERS_COLLECTION, cardData.userId || '');
-    const userDoc = await getDoc(userRef);
+    const userRef = doc(firestore, USERS_COLLECTION, cardData.userId);
     
-    if (!userDoc.exists()) {
-      throw new Error('User not found');
+    // Variable declaration to use throughout the function
+    let userData: any = {};
+    let cardLimit = 2; // Default free plan limit
+    let cardsCreated = 0;
+    let userExists = false;
+    
+    try {
+      const userDoc = await getDoc(userRef);
+      userExists = userDoc.exists();
+      
+      if (userExists) {
+        userData = userDoc.data();
+        cardsCreated = userData.cardsCreated || 0;
+        
+        // Try to fetch card limits configuration
+        const limitsRef = doc(firestore, SYSTEM_CONFIG_COLLECTION, 'card_limits');
+        const limitsDoc = await getDoc(limitsRef);
+        
+        if (limitsDoc.exists()) {
+          const limits = limitsDoc.data();
+          const userPlan = userData.plan || 'free';
+          cardLimit = limits[userPlan] || 2; // Use plan limit or default to free
+        }
+        
+        // Check if user has reached their card limit
+        if (cardsCreated >= cardLimit) {
+          throw new Error('Card limit reached');
+        }
+      } else {
+        console.log('User profile does not exist yet. Creating user profile first...');
+        
+        // Create a basic user profile to prevent invalid document reference errors
+        const basicUserProfile = {
+          uid: cardData.userId,
+          email: '',
+          displayName: '',
+          photoURL: '',
+          plan: 'free' as const,
+          cardLimit: 2,
+          cardsCreated: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastSeen: serverTimestamp()
+        };
+        
+        await setDoc(userRef, basicUserProfile);
+        console.log('Created basic user profile');
+      }
+      
+      // Check if slug is provided or generate one
+      const slug = cardData.slug || generateSlug(cardData.firstName, cardData.lastName);
+      
+      // Check if slug is unique
+      const slugQuery = query(
+        collection(firestore, CARDS_COLLECTION),
+        where('slug', '==', slug)
+      );
+      const slugQuerySnapshot = await getDocs(slugQuery);
+      
+      if (!slugQuerySnapshot.empty) {
+        throw new Error('Slug already exists');
+      }
+      
+      // Create card
+      const cardRef = doc(collection(firestore, CARDS_COLLECTION));
+      const newCard = {
+        ...cardData,
+        slug,
+        active: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      await setDoc(cardRef, newCard);
+      
+      // Update user's card count
+      try {
+        await updateDoc(userRef, {
+          cardsCreated: increment(1),
+          lastActivity: serverTimestamp()
+        });
+      } catch (updateError) {
+        console.error('Failed to update user card count:', updateError);
+        // Continue with card creation even if this fails
+      }
+      
+      // Initialize card stats
+      const statsRef = doc(firestore, CARD_STATS_COLLECTION, cardRef.id);
+      await setDoc(statsRef, {
+        views: 0,
+        downloads: 0,
+        shares: 0,
+        lastViewed: null,
+        cardId: cardRef.id
+      });
+      
+      return { cardId: cardRef.id };
+    } catch (error: any) {
+      console.error('Error during card creation:', error);
+      throw new Error(`Failed to create card: ${error.message}`);
     }
-
-    const userData = userDoc.data();
-    
-    // Fetch card limits configuration
-    const limitsRef = doc(firestore, SYSTEM_CONFIG_COLLECTION, 'card_limits');
-    const limitsDoc = await getDoc(limitsRef);
-    
-    if (!limitsDoc.exists()) {
-      throw new Error('System configuration not found');
-    }
-    
-    const limits = limitsDoc.data();
-    const userPlan = userData.plan || 'free';
-    const cardLimit = limits[userPlan] || 2; // Default to free plan limit
-    
-    // Check if user has reached their card limit
-    const cardsCreated = userData.cardsCreated || 0;
-    
-    if (cardsCreated >= cardLimit) {
-      throw new Error('Card limit reached');
-    }
-    
-    // Check if slug is provided or generate one
-    const slug = cardData.slug || generateSlug(cardData.firstName, cardData.lastName);
-    
-    // Check if slug is unique
-    const slugQuery = query(
-      collection(firestore, CARDS_COLLECTION),
-      where('slug', '==', slug)
-    );
-    const slugQuerySnapshot = await getDocs(slugQuery);
-    
-    if (!slugQuerySnapshot.empty) {
-      throw new Error('Slug already exists');
-    }
-    
-    // Create card
-    const cardRef = doc(collection(firestore, CARDS_COLLECTION));
-    const newCard = {
-      ...cardData,
-      slug,
-      active: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    await setDoc(cardRef, newCard);
-    
-    // Update user's card count
-    await updateDoc(userRef, {
-      cardsCreated: increment(1),
-      lastActivity: serverTimestamp()
-    });
-    
-    // Initialize card stats
-    const statsRef = doc(firestore, CARD_STATS_COLLECTION, cardRef.id);
-    await setDoc(statsRef, {
-      views: 0,
-      downloads: 0,
-      shares: 0,
-      lastViewed: null,
-      cardId: cardRef.id
-    });
-    
-    return { cardId: cardRef.id };
   },
   
   /**

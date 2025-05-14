@@ -17,7 +17,7 @@ const firestore = getFirestore(app);
 /**
  * Configure default card limits for different subscription plans
  */
-async function configureCardLimits() {
+export async function configureCardLimits() {
   try {
     // Define default card limits
     const cardLimits = {

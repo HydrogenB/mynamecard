@@ -35,11 +35,33 @@ function extractConfig() {
     console.error(chalk.red('❌ Could not find firebaseConfig object in the config file.'));
     return null;
   }
-  
   try {
-    // This is a bit of a hack but works for extracting the config
-    const configStr = match[1].replace(/(\w+):/g, '"$1":');
-    return JSON.parse(configStr);
+    // Instead of trying to parse the complex TypeScript file,
+    // we'll manually check for the required fields
+    const config = {};
+    const fields = [
+      'apiKey', 'authDomain', 'projectId', 'storageBucket', 
+      'messagingSenderId', 'appId', 'measurementId', 'databaseURL'
+    ];
+    
+    for (const field of fields) {
+      const regex = new RegExp(`${field}:\\s*["']([^"']+)["']`, 'i');
+      const match = content.match(regex);
+      if (match && match[1]) {
+        config[field] = match[1];
+      }
+    }
+    
+    // If apiKey isn't found directly, try to find it via FIREBASE_API_KEY
+    if (!config.apiKey) {
+      const apiKeyRegex = /const FIREBASE_API_KEY = ["']([^"']+)["']/;
+      const apiKeyMatch = content.match(apiKeyRegex);
+      if (apiKeyMatch && apiKeyMatch[1]) {
+        config.apiKey = apiKeyMatch[1];
+      }
+    }
+    
+    return config;
   } catch (error) {
     console.error(chalk.red('❌ Failed to parse Firebase config:'));
     console.error(error);

@@ -94,9 +94,27 @@ const CardEditor: React.FC = () => {
     }
   }, [firstName, lastName, setValue, isEditMode]);  const onSubmit = async (data: CardFormData) => {
     try {
+      if (!user) {
+        alert(t('errors.loginRequired'));
+        navigate('/login');
+        return;
+      }
+
+      console.log("Current auth user:", user);
+      
+      // Force update the user profile before creating a card to ensure it exists
+      try {
+        const profile = await ensureUserProfile(user);
+        console.log("Ensured user profile:", profile);
+      } catch (profileError) {
+        console.error("Failed to ensure user profile:", profileError);
+        // Continue anyway - the card creation will create a profile if needed
+      }
+
       // Include photo in the data if it exists and ensure address fields are valid
       const cardData = {
         ...data,
+        userId: user.uid, // Explicitly add the user ID to the card data
         photo: photoData,
         active: true, // All new cards start as active
         // Ensure address fields are properly defined for database service
@@ -183,12 +201,25 @@ const CardEditor: React.FC = () => {
         }
       }        navigate('/dashboard');    } catch (error: any) {
       console.error('Error saving card:', error);
-      
-      // Check for specific Firebase permission errors
+        // Check for specific Firebase permission errors
       if (error?.code === 'permission-denied') {
         console.error('Firebase permission denied error:', error);
         alert(`${t('errors.saveCardFailed')}: Missing or insufficient permissions. This could be due to your user profile not being fully initialized. Please try again in a few moments, or try logging out and back in.`);
       } 
+      // Check for invalid document reference errors
+      else if (error?.message?.includes('invalid document reference') || error?.message?.includes('Invalid document reference')) {
+        console.error('Invalid document reference error:', error);
+        
+        // Try to create/update the user profile and retry
+        try {
+          const profile = await ensureUserProfile(user);
+          console.log('User profile created after error:', profile);
+          alert(`${t('errors.saveCardFailed')}: We've updated your user profile. Please try saving the card again.`);
+        } catch (profileError) {
+          console.error('Failed to create user profile after invalid document error:', profileError);
+          alert(`${t('errors.saveCardFailed')}: Unable to create your user profile. Please try logging out and back in.`);
+        }
+      }
       // Check for profile-related errors
       else if (error?.message?.includes('profile')) {
         console.error('User profile error:', error);

@@ -19,7 +19,7 @@ getFirestore(app);
 /**
  * Run the initialization process
  */
-async function initializeFirestoreCollections() {
+export async function initializeFirestoreCollections() {
   try {
     console.log('Starting Firestore initialization...');
     

@@ -13,33 +13,34 @@ service cloud.firestore {
     function getUserData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
+    
     function canCreateCard(userId) {
-      let userData = getUserData(userId);
-      // Allow if profile doesn't exist or if they're under the limit
-      // This enables first-time users to create cards without any issues
-      return userData == null ||
-             !("cardsCreated" in userData) ||
-             !("cardLimit" in userData) ||
-             userData.cardsCreated < userData.cardLimit;
+      // Check if user document exists
+      return !exists(/databases/$(database)/documents/users/$(userId)) || 
+        getUserData(userId) == null || 
+        !("cardsCreated" in getUserData(userId)) || 
+        !("cardLimit" in getUserData(userId)) ||
+        getUserData(userId).cardsCreated < getUserData(userId).cardLimit;
     }
     
     function getCardCount(userId) {
       let userData = getUserData(userId);
       return userData != null && "cardsCreated" in userData ? userData.cardsCreated : 0;
-    }
-    
-    // Cards collection rules
+    }    // Cards collection rules
     match /cards/{cardId} {
       // Allow read access for active cards to anyone
-      allow read: if resource.data.active == true;
+      allow read: if resource == null || resource.data.active == true;
       
       // Allow read access for user's own cards regardless of active status
-      allow read: if isOwner(resource.data.userId);      // Allow create for authenticated users if they haven't reached their limit
-      // The canCreateCard function now handles missing user profiles gracefully
-      allow create: if isOwner(request.resource.data.userId) && canCreateCard(request.auth.uid);
+      allow read: if resource != null && isOwner(resource.data.userId);
+      
+      // Allow create for authenticated users if they haven't reached their limit
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    canCreateCard(request.auth.uid);
       
       // Allow update and delete for user's own cards
-      allow update, delete: if isOwner(resource.data.userId);
+      allow update, delete: if resource != null && isOwner(resource.data.userId);
     }
     
     // User data rules

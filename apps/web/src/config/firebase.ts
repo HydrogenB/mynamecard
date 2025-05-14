@@ -11,12 +11,12 @@ const FIREBASE_API_KEY = "AIzaSyB1b0fKw8PCBw-slGJa7N1cMUSNTnaxchY";
 export const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   authDomain: "mynamecard-2c393.firebaseapp.com",
+  databaseURL: "https://mynamecard-2c393-default-rtdb.firebaseio.com",
   projectId: "mynamecard-2c393",
   storageBucket: "mynamecard-2c393.firebasestorage.app",
   messagingSenderId: "668925791300",
   appId: "1:668925791300:web:b7e475de4fe84c79d98011",
   measurementId: "G-BR7HTT61FS"
-  // Removed databaseURL as we're using Firestore exclusively
 };
 
 // Initialize Firebase
