@@ -8,8 +8,27 @@ import { WebSocketServer } from 'ws';
 import { generateVCard } from './services/vcardService';
 import { CardData, renderCardHTML } from './services/ssrService';
 
-// In-memory cache for cards (simulating a database)
+// In-memory storage for data
 const cardCache: Map<string, CardData> = new Map();
+const users: Map<string, {
+  email: string;
+  displayName?: string;
+  cardLimit: number;
+  cardsCreated: number;
+  plan: 'free' | 'pro';
+}> = new Map();
+
+// Hard-coded user for simple authentication
+users.set('test-user-id', {
+  email: 'test',
+  displayName: 'Test User',
+  cardLimit: 2,
+  cardsCreated: 0,
+  plan: 'free'
+});
+
+// Simple session management
+const sessions: Map<string, string> = new Map(); // token to userId
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,11 +39,81 @@ app.use(compression());
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, '../../apps/web/dist')));
 
-// Configuration values (would normally be in .env file)
+// Configuration values
 const DEFAULT_CARD_LIMIT = 2;
 const PRO_USER_CARD_LIMIT = 10;
 
 // API endpoints
+
+// Authentication endpoints
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+
+  // Simple hard-coded authentication - username: test, password: test
+  if (email === 'test' && password === 'test') {
+    const token = `session-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    sessions.set(token, 'test-user-id');
+    
+    return res.status(200).json({ 
+      token,
+      user: {
+        uid: 'test-user-id',
+        email: 'test',
+        displayName: 'Test User'
+      }
+    });
+  }
+  
+  return res.status(401).json({ error: 'Invalid credentials' });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (token) {
+    sessions.delete(token);
+  }
+  
+  return res.status(200).json({ success: true });
+});
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
+}
+
+// Middleware to verify authentication
+const authenticate = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token || !sessions.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  req.userId = sessions.get(token);
+  next();
+};
+
+// Get current user profile
+app.get('/api/users/me', authenticate, (req, res) => {
+  const userId = req.userId as string;
+  const user = users.get(userId);
+  
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  return res.status(200).json({
+    uid: userId,
+    ...user,
+    cardsRemaining: user.cardLimit - user.cardsCreated
+  });
+});
+
 app.get('/api/vcf/:slug', (req, res) => {
   const { slug } = req.params;
   const card = cardCache.get(slug);
@@ -41,11 +130,30 @@ app.get('/api/vcf/:slug', (req, res) => {
 });
 
 // Register or update a card
-app.post('/api/cards', (req, res) => {
-  const { slug, data, userId } = req.body;
+app.post('/api/cards', authenticate, (req, res) => {
+  const { slug, data } = req.body;
+  const userId = req.userId as string;
   
   if (!slug || !data) {
     return res.status(400).send('Invalid card data');
+  }
+  
+  const user = users.get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  // Check if user has reached their card limit
+  // If it's an update (card already exists), we don't count against the limit
+  const existingCard = cardCache.get(slug);
+  const isNewCard = !existingCard || existingCard.userId !== userId;
+  
+  if (isNewCard && user.cardsCreated >= user.cardLimit) {
+    return res.status(403).json({
+      error: 'Card limit reached',
+      limit: user.cardLimit,
+      plan: user.plan
+    });
   }
   
   // Ensure card has an active status field
@@ -53,10 +161,86 @@ app.post('/api/cards', (req, res) => {
     data.active = true; // Default to active
   }
   
-  // In a real implementation, we would verify the user token here
-  // and check if they've reached their card limit
+  // Add userId to the card data
+  data.userId = userId;
   
   cardCache.set(slug, data);
+  
+  // Update user's card count if it's a new card
+  if (isNewCard) {
+    user.cardsCreated++;
+    users.set(userId, user);
+  }
+  
+  return res.status(200).json({ 
+    success: true,
+    cardsRemaining: user.cardLimit - user.cardsCreated 
+  });
+});
+
+// Get user's cards
+app.get('/api/cards', authenticate, (req, res) => {
+  const userId = req.userId as string;
+  
+  // Filter cards by userId
+  const userCards: { id: string; data: CardData }[] = [];
+  
+  cardCache.forEach((cardData, id) => {
+    if (cardData.userId === userId) {
+      userCards.push({ id, data: cardData });
+    }
+  });
+  
+  return res.status(200).json({ cards: userCards });
+});
+
+// Get card by ID
+app.get('/api/cards/:id', authenticate, (req, res) => {
+  const userId = req.userId as string;
+  const cardId = req.params.id;
+  
+  const card = cardCache.get(cardId);
+  
+  if (!card) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+  
+  // Only return card if it belongs to the authenticated user
+  if (card.userId !== userId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  
+  return res.status(200).json({ 
+    id: cardId, 
+    ...card 
+  });
+});
+
+// Delete card
+app.delete('/api/cards/:id', authenticate, (req, res) => {
+  const userId = req.userId as string;
+  const cardId = req.params.id;
+  
+  const card = cardCache.get(cardId);
+  
+  if (!card) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+  
+  // Only allow deletion if the card belongs to the authenticated user
+  if (card.userId !== userId) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  
+  cardCache.delete(cardId);
+  
+  // Update user's card count
+  const user = users.get(userId);
+  if (user && user.cardsCreated > 0) {
+    user.cardsCreated--;
+    users.set(userId, user);
+  }
+  
   return res.status(200).json({ success: true });
 });
 

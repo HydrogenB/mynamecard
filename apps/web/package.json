@@ -10,17 +10,12 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:jest": "jest",
-    "configure-limits": "ts-node src/scripts/configureCardLimits.ts",
-    "initialize-firestore": "ts-node src/scripts/initializeFirestoreScript.ts",
-    "setup-firestore": "npm run initialize-firestore && npm run configure-limits",
-    "migrate-data": "ts-node src/utils/migrateToFirestore.ts"
+    "test:jest": "jest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.2.0",
     "dexie": "^3.2.4",
     "dexie-react-hooks": "^1.1.6",
-    "firebase": "^11.7.1",
     "i18next": "^23.4.1",
     "i18next-browser-languagedetector": "^7.1.0",
     "qrcode.react": "^3.1.0",

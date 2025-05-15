@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
-import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
-import { userService } from '../services/userService';
+import simpleUserService from '../services/simpleUserService';
 
 const UserProfile: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();  const [displayName, setDisplayName] = useState('');  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -18,11 +18,8 @@ const UserProfile: React.FC = () => {
     const loadUserProfile = async () => {
       if (user) {
         setDisplayName(user.displayName || '');
-        try {          const profileData = firebaseAnalyticsService.getCurrentUser();
-          if (profileData) {
-            await userService.getUserProfile(user.uid);
-            // We don't need to store the profile data
-          }
+        try {
+          await simpleUserService.getUserProfile(user.uid);
         } catch (err) {
           console.error("Error loading user profile data:", err);
         }
@@ -44,13 +41,10 @@ const UserProfile: React.FC = () => {
     setError(null);
     setMessage(null);
     
-    try {
-      await updateProfile(user, {
-        displayName: displayName
-      });
+    try {      // Update user profile with new display name
       
-      // Update online status with new display name
-      await firebaseAnalyticsService.setUserOnlineStatus(true);
+      // Update the user profile in the database
+      await simpleUserService.updateUserProfile(user.uid, { displayName });
       
       setMessage('Profile updated successfully');
     } catch (err: any) {
@@ -66,65 +60,56 @@ const UserProfile: React.FC = () => {
   }
 
   return (
-    <div className="container-card py-8">
-      <h1 className="text-2xl font-bold mb-6">{t('auth.profile')}</h1>
-      
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-          <div className="text-sm text-red-700">{error}</div>
-        </div>
-      )}
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">{t('profile.title')}</h1>
       
       {message && (
         <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
-          <div className="text-sm text-green-700">{message}</div>
+          <div className="text-green-700">{message}</div>
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow p-6">
-        <form onSubmit={handleUpdateProfile} className="space-y-4">
-          {/* User info */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.email')}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div className="text-red-700">{error}</div>
+        </div>
+      )}
+      
+      <div className="bg-white shadow rounded-lg p-6">
+        <form onSubmit={handleUpdateProfile}>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+              {t('profile.email')}
             </label>
             <input
-              type="email"
-              disabled
-              className="w-full border border-gray-300 rounded-md p-2 bg-gray-100"
+              id="email"
+              type="text"
               value={user.email || ''}
+              disabled
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Email cannot be changed
-            </p>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name
+          <div className="mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="displayName">
+              {t('profile.displayName')}
             </label>
             <input
+              id="displayName"
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
           
-          <div>
+          <div className="flex items-center justify-between">
             <button
               type="submit"
               disabled={loading}
-              className={`bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md transition ${
-                loading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
+              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading ? (
-                <span className="inline-block mr-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                </span>
-              ) : null}
-              {t('cardEditor.saveBtn')}
+              {loading ? t('common.saving') : t('profile.updateProfile')}
             </button>
           </div>
         </form>

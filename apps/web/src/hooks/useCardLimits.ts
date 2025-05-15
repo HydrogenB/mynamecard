@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { userService } from '../services/userService';
+import simpleUserService from '../services/simpleUserService';
 
 interface CardLimits {
   plan: string;
@@ -22,7 +22,7 @@ export function useCardLimits(): {
   refreshLimits: () => Promise<void>;
   isProPlan: boolean;
 } {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [limits, setLimits] = useState<CardLimits>({
     plan: 'free',
     cardsCreated: 0,
@@ -34,43 +34,70 @@ export function useCardLimits(): {
 
   // Function to load the user's card limits
   async function loadLimits() {
-    if (!currentUser) {
+    if (!user) {
       setLimits(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
     try {
       setLimits(prev => ({ ...prev, isLoading: true, error: null }));
-      const userLimits = await userService.getUserLimits(currentUser.uid);
       
-      setLimits({
-        plan: userLimits.plan,
-        cardsCreated: userLimits.cardsCreated,
-        cardLimit: userLimits.cardLimit,
-        cardsRemaining: userLimits.cardsRemaining,
-        isLoading: false,
-        error: null
-      });
+      const userProfile = await simpleUserService.getUserProfile(user.uid);
+      if (userProfile) {
+        const cardsCreated = userProfile.cardsCreated || 0;
+        const cardLimit = userProfile.cardLimit || 2;
+        
+        setLimits({
+          plan: userProfile.plan || 'free',
+          cardsCreated,
+          cardLimit,
+          cardsRemaining: Math.max(0, cardLimit - cardsCreated),
+          isLoading: false,
+          error: null
+        });
+      } else {
+        // Create a profile if it doesn't exist
+        await simpleUserService.createUserProfile(user);
+        setLimits({
+          plan: 'free',
+          cardsCreated: 0,
+          cardLimit: 2,
+          cardsRemaining: 2,
+          isLoading: false,
+          error: null
+        });
+      }
     } catch (error) {
-      console.error('Error loading user card limits:', error);
+      console.error("Error loading card limits:", error);
       setLimits(prev => ({ 
         ...prev, 
         isLoading: false, 
-        error: error instanceof Error ? error : new Error('Failed to load card limits')
+        error: error instanceof Error ? error : new Error('Failed to load limits') 
       }));
     }
   }
 
-  // Load limits when the user changes
+  // Load limits on mount or when user changes
   useEffect(() => {
     loadLimits();
-  }, [currentUser?.uid]);
+  }, [user]);
 
-  return {
-    limits,
-    canCreateCard: limits.cardsRemaining > 0,
-    refreshLimits: loadLimits,
-    isProPlan: limits.plan === 'pro'
+  // Function to manually refresh limits
+  const refreshLimits = async (): Promise<void> => {
+    await loadLimits();
+  };
+
+  // Calculate if the user can create another card
+  const canCreateCard = limits.cardsRemaining > 0;
+  
+  // Check if the user is on the pro plan
+  const isProPlan = limits.plan === 'pro';
+
+  return { 
+    limits, 
+    canCreateCard, 
+    refreshLimits, 
+    isProPlan
   };
 }
 

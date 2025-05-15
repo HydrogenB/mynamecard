@@ -5,9 +5,7 @@ import NotFound from './NotFound';
 // Replace QRCode import with our design system component
 import { QRCode } from '../design-system';
 import { generateVCard } from '../utils/vcardGenerator';
-import { cardService } from '../services/cardService';
-import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
-import { auth } from '../config/firebase';
+import cardAPI from '../services/cardAPI';
 
 // Import the Card type and extend it for our component
 import { Card as DBCard } from '../db/db';
@@ -134,7 +132,7 @@ const PublicCard: React.FC = () => {
       
       // Track download activity
       if (card.id) {
-        await firebaseAnalyticsService.trackCardActivity(card.id, 'download');
+        // No analytics tracking in simplified version
         await firebaseAnalyticsService.updateCardStats(card.id, 'downloads');
       }
     } catch (error) {

@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
@@ -26,16 +23,11 @@ const Navigation: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [scrolled]);
-
   const handleSignOut = async () => {
     try {
-      // Set user offline in Firestore
-      if (user) {
-        await firebaseAnalyticsService.setUserOnlineStatus(false);
-      }
-      
-      // Sign out from Firebase
-      await signOut(auth);
+      // Sign out using our auth context
+      const { logout } = useAuth();
+      await logout();
       navigate('/signin');
     } catch (error) {
       console.error('Error signing out:', error);

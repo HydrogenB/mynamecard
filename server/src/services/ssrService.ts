@@ -22,6 +22,7 @@ export interface CardData {
   active?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  userId?: string; // Track the card owner
 }
 
 export function renderCardHTML(card: CardData, slug?: string): string {

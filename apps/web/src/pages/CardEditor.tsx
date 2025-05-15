@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
 import ImageUploader from '../components/ImageUploader';
 import AuthNotice from '../components/AuthNotice';
-import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
-import userService from '../services/userService';
+import simpleUserService from '../services/simpleUserService';
 import { useAuth } from '../contexts/AuthContext';
 import cardAPI from '../services/cardAPI';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -227,10 +226,7 @@ const CardEditor: React.FC = () => {
         if (isEditMode && id) {        // Use card API to update the card
         const { default: cardAPI } = await import('../services/cardAPI');
         await cardAPI.updateCard(id, cardData);
-          // Update successful (no need to check success flag as card API throws errors)
-        
-        // Log card update activity in Firebase Realtime Database
-        await firebaseAnalyticsService.trackCardActivity(id, 'view');
+          // Update successful (no need to check success flag as card API throws errors)        // No analytics tracking in simplified version
         
         // Update server (for SSR)
         try {
@@ -285,11 +281,7 @@ const CardEditor: React.FC = () => {
           const errorCode = cardError?.code ? ` (${cardError.code})` : '';
           throw new Error(`Failed to create card${errorCode}: ${cardError.message}`);
         }
-        
-        // Log card creation activity in Firebase Realtime Database
-        if (card.id) {
-          await firebaseAnalyticsService.trackCardActivity(card.id, 'view');
-        }
+          // No analytics tracking in simplified version
         
         // Update server (for SSR)
         try {
