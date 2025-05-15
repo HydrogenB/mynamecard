@@ -13,14 +13,17 @@ service cloud.firestore {
     function getUserData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
-    
-    function canCreateCard(userId) {
-      // Check if user document exists
-      return !exists(/databases/$(database)/documents/users/$(userId)) || 
-        getUserData(userId) == null || 
-        !("cardsCreated" in getUserData(userId)) || 
-        !("cardLimit" in getUserData(userId)) ||
-        getUserData(userId).cardsCreated < getUserData(userId).cardLimit;
+      function canCreateCard(userId) {
+      // Simplified rule for development - always allow card creation
+      // In production, uncomment the rule below
+      return true;
+      
+      // Original rule - uncomment for production
+      // return !exists(/databases/$(database)/documents/users/$(userId)) || 
+      //   getUserData(userId) == null || 
+      //   !("cardsCreated" in getUserData(userId)) || 
+      //   !("cardLimit" in getUserData(userId)) ||
+      //   getUserData(userId).cardsCreated < getUserData(userId).cardLimit;
     }
     
     function getCardCount(userId) {

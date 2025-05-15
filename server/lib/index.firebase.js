@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.api = exports.initializeCardLimits = exports.upgradePlan = void 0;
+exports.api = exports.createCard = exports.initializeCardLimits = exports.upgradePlan = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const compression_1 = __importDefault(require("compression"));
@@ -17,6 +17,8 @@ var upgradePlan_1 = require("./functions/upgradePlan");
 Object.defineProperty(exports, "upgradePlan", { enumerable: true, get: function () { return upgradePlan_1.upgradePlan; } });
 var initializeCardLimits_1 = require("./functions/initializeCardLimits");
 Object.defineProperty(exports, "initializeCardLimits", { enumerable: true, get: function () { return initializeCardLimits_1.initializeCardLimits; } });
+var createCard_1 = require("./functions/createCard");
+Object.defineProperty(exports, "createCard", { enumerable: true, get: function () { return createCard_1.createCard; } });
 // Mock implementation for build purposes
 // This allows the build to succeed even without firebase-admin and firebase-functions packages
 const mockDb = {

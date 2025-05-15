@@ -6,8 +6,9 @@ import LanguageSwitch from '../components/LanguageSwitch';
 import PricingModal from '../components/PricingModal';
 import QRModal from '../components/QRModal';
 import FirebaseDebugger from '../components/FirebaseDebugger';
+import AuthNotice from '../components/AuthNotice';
 import { useAuth } from '../contexts/AuthContext';
-import { cardService } from '../services/cardService';
+import cardAPI from '../services/cardAPI';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import useCardLimits from '../hooks/useCardLimits';
 
@@ -29,10 +30,8 @@ const Dashboard: React.FC = () => {
       }
       
       try {
-        setLoading(true);
-
-        // Load all user cards
-        const fetchedCards = await cardService.getUserCards(user.uid);
+        setLoading(true);        // Load all user cards using the cardAPI
+        const fetchedCards = await cardAPI.getUserCards(user.uid);
         setCards(fetchedCards);
         
         // Refresh card limits and usage after loading cards
@@ -77,9 +76,8 @@ const Dashboard: React.FC = () => {
     navigate(`/edit/${id}`);
   };  const handleDeleteCard = async (id: string | number) => {
     if (window.confirm(t('dashboard.deleteConfirm'))) {
-      try {
-        // Delete the card using cardService
-        await cardService.deleteCard(id.toString());
+      try {        // Delete the card using cardAPI
+        await cardAPI.deleteCard(id.toString());
         
         // Update the local state to reflect the deletion
         setCards(prevCards => prevCards.filter(card => card.id !== id));
@@ -97,7 +95,7 @@ const Dashboard: React.FC = () => {
     const newActiveStatus = !card.active;
     
     try {
-      await cardService.toggleCardActive(card.id, newActiveStatus);
+      await cardAPI.toggleCardActive(card.id, newActiveStatus);
       
       // Update local card state
       setCards(prevCards => 
@@ -136,6 +134,8 @@ const Dashboard: React.FC = () => {
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
       </div>
+      
+      <AuthNotice />
       
       <div className="mb-4 flex justify-between items-center">        <p className="text-sm text-gray-600">
           {t('dashboard.cardCount', { count: limits.cardsCreated })} / {limits.cardLimit}

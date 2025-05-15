@@ -10,6 +10,7 @@ import { CardData, renderCardHTML } from './services/ssrService';
 // Export Cloud Functions
 export { upgradePlan } from './functions/upgradePlan';
 export { initializeCardLimits } from './functions/initializeCardLimits';
+export { createCard } from './functions/createCard';
 
 // Add these interfaces to support Firebase functionality
 // Used to extend CardData with Firebase-specific fields

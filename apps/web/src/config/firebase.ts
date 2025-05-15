@@ -2,6 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { env } from './environment';
 
 // Firebase API key for authentication
 const FIREBASE_API_KEY = "AIzaSyB1b0fKw8PCBw-slGJa7N1cMUSNTnaxchY";
@@ -24,6 +26,13 @@ const app = initializeApp(firebaseConfig);
 export const firestore = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
+
+// Connect to Functions emulator in development
+if (import.meta.env.MODE === 'development' || import.meta.env.VITE_APP_ENV === 'development') {
+  console.log('Connecting to Firebase Functions emulator on localhost:5001');
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+}
 
 // Enable offline persistence for Firestore
 enableIndexedDbPersistence(firestore)

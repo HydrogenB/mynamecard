@@ -5,10 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { cardSchema, CardFormData, generateSlug } from '../schemas/cardSchema';
 import ImageUploader from '../components/ImageUploader';
-import { cardService } from '../services/cardService';
+import AuthNotice from '../components/AuthNotice';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
+import cardAPI from '../services/cardAPI';
 
 // Add a debug helper function 
 const logDebugInfo = (title: string, data: any) => {
@@ -49,9 +50,9 @@ const CardEditor: React.FC = () => {
   useEffect(() => {
     const loadCard = async () => {
       if (!id) return;
-      
-      try {        // Use card service to get card data from Firestore
-        const card = await cardService.getCardById(id);
+        try {        // Use cardAPI to get card data
+        const { default: cardAPI } = await import('../services/cardAPI');
+        const card = await cardAPI.getCardById(id);
         
         if (!card) {
           navigate('/dashboard');
@@ -158,10 +159,10 @@ const CardEditor: React.FC = () => {
           country: data.address.country || '',
         } : undefined
       };
-      
-      if (isEditMode && id) {        // Use card service to update the card in Firestore
-        await cardService.updateCard(id, cardData);
-          // Update successful (no need to check success flag as cardService throws errors)
+        if (isEditMode && id) {        // Use card API to update the card
+        const { default: cardAPI } = await import('../services/cardAPI');
+        await cardAPI.updateCard(id, cardData);
+          // Update successful (no need to check success flag as card API throws errors)
         
         // Log card update activity in Firebase Realtime Database
         await firebaseAnalyticsService.trackCardActivity(id, 'view');
@@ -199,16 +200,20 @@ const CardEditor: React.FC = () => {
         } catch (error) {
           console.error('Error ensuring user profile exists:', error);
           throw new Error('Failed to verify user profile. Please try logging out and back in.');
-        }
-        logDebugInfo('User after profile check', user);        // Use card service to create the card in Firestore with detailed error handling
-        let card;
-        try {
-          const result = await cardService.createCard(cardData);
-          card = { ...cardData, id: result.cardId };
+        }        logDebugInfo('User after profile check', user);        // Use the Card API which abstracts away implementation details
+        let card;        try {
+          // Import the card API service
+          const { default: cardAPI } = await import('../services/cardAPI');
+          
+          // Use the card API to create card
+          console.log('Using Card API to create card');
+          const result = await cardAPI.createCard(cardData);
+          card = { ...cardData, id: result.cardId, slug: result.slug };
           
           if (!card) {
             throw new Error('Failed to create card - no card data returned');
           }
+          console.log('Card created successfully via API:', card.id);
         } catch (cardError: any) {
           console.error('Detailed card creation error:', cardError);
           // Enhanced error message with Firebase error code if available
@@ -382,17 +387,19 @@ const CardEditor: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="container-card py-8">
       <h1 className="text-2xl font-bold mb-6">
         {isEditMode ? t('cardEditor.editTitle') : t('cardEditor.createTitle')}
       </h1>
       
+      {/* Auth Notice - show for all users */}
+      <AuthNotice />
+      
       {/* Debug button - only in development */}
       {process.env.NODE_ENV !== 'production' && (
         <div className="mb-8 p-4 border border-yellow-400 bg-yellow-50 rounded">
-          <button 
+          <button
             onClick={testFirestoreAccess}
             className="bg-yellow-500 hover:bg-yellow-600 text-white rounded px-4 py-2 mb-2"
           >
