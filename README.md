@@ -105,18 +105,45 @@ npm run build
 
 ## Firebase Deployment
 
-The application is configured to deploy to Firebase Hosting.
+The application is configured to deploy to Firebase Hosting with an API-based architecture using Firebase Cloud Functions.
 
-### Manual Deployment
+### Prerequisites
+
+- Firebase CLI installed: `npm install -g firebase-tools`
+- Firebase account with Blaze (pay-as-you-go) plan enabled for Cloud Functions
+- Node.js 16+ installed
+
+### API-Based Deployment
+
+For Windows users, use one of these options:
 
 ```bash
-# Build and deploy to Firebase
-npm run deploy
+# Option 1: Using PowerShell script (recommended for Windows 11)
+.\deploy-windows.ps1
+
+# Option 2: Using Batch file
+deploy-windows.bat
+
+# Option 3: Running the Node.js script directly
+node deploy-all.js
+```
+
+This will deploy:
+1. Firebase Cloud Functions (API backend)
+2. Firestore Rules 
+3. Firebase Hosting (web frontend)
+
+### Testing the Deployment
+
+After deployment, run the API verification tool:
+
+```bash
+node test-api.js
 ```
 
 ### Automated Deployment
 
-The project is set up with GitHub Actions for continuous deployment. Any push to the main branch will trigger a deployment to Firebase Hosting.
+The project is set up with GitHub Actions for continuous deployment. Any push to the main branch will trigger a deployment to Firebase Hosting and Functions.
 
 ## Firebase Emulator
 

@@ -27,7 +27,6 @@ export const firestore = getFirestore(app);
 export const functions = getFunctions(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
 
 // Connect to Functions emulator in development
 if (import.meta.env.MODE === 'development' || import.meta.env.VITE_APP_ENV === 'development') {
