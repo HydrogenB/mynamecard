@@ -33,6 +33,8 @@ const CardEditor: React.FC = () => {
   const isEditMode = Boolean(id);
   const [loading, setLoading] = useState(isEditMode);
   const [photoData, setPhotoData] = useState<string | undefined>(undefined);
+  // Add debug state
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
@@ -248,6 +250,77 @@ const CardEditor: React.FC = () => {
     }
   };
 
+  // Add a debug function to test direct Firestore access
+  const testFirestoreAccess = async () => {
+    try {
+      setDebugInfo('Testing Firestore access...');
+      const { firestore, auth } = await import('../config/firebase');
+      const { collection, doc, setDoc, getDoc, serverTimestamp } = await import('firebase/firestore');
+
+      if (!auth.currentUser) {
+        setDebugInfo('Error: Not authenticated! Please log in first.');
+        return;
+      }
+
+      // Log current authentication state
+      setDebugInfo(`Current user: ${auth.currentUser.email} (${auth.currentUser.uid})`);
+      
+      // Test if we can write to a test collection directly
+      const testDocRef = doc(collection(firestore, 'debug_tests'));
+      await setDoc(testDocRef, {
+        userId: auth.currentUser.uid,
+        email: auth.currentUser.email,
+        timestamp: serverTimestamp(),
+        testValue: 'This is a test write'
+      });
+      
+      // If we get here, write was successful
+      setDebugInfo(prev => `${prev}\n✅ Write to Firestore successful!`);
+      
+      // Try to read it back
+      const docSnap = await getDoc(testDocRef);
+      if (docSnap.exists()) {
+        setDebugInfo(prev => `${prev}\n✅ Read from Firestore successful!`);
+      } else {
+        setDebugInfo(prev => `${prev}\n❌ Read failed: Document doesn't exist after write!`);
+      }
+
+      // Try to create/check user profile
+      try {
+        const userProfileRef = doc(firestore, 'users', auth.currentUser.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+        
+        if (userProfileSnap.exists()) {
+          setDebugInfo(prev => `${prev}\n✅ User profile exists! Plan: ${userProfileSnap.data().plan}, Cards created: ${userProfileSnap.data().cardsCreated || 0}`);
+        } else {
+          setDebugInfo(prev => `${prev}\n⚠️ User profile doesn't exist! Creating now...`);
+          
+          // Create a basic user profile
+          await setDoc(userProfileRef, {
+            uid: auth.currentUser.uid,
+            email: auth.currentUser.email || '',
+            displayName: auth.currentUser.displayName || '',
+            photoURL: auth.currentUser.photoURL || '',
+            plan: 'free',
+            cardLimit: 2,
+            cardsCreated: 0,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastSeen: serverTimestamp()
+          });
+          
+          setDebugInfo(prev => `${prev}\n✅ User profile created!`);
+        }
+      } catch (profileError: any) {
+        setDebugInfo(prev => `${prev}\n❌ Error with user profile: ${profileError.message}`);
+      }
+      
+    } catch (error: any) {
+      setDebugInfo(`Error testing Firestore: ${error.message}`);
+      console.error('Firestore test error:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container-card py-8">
@@ -269,6 +342,23 @@ const CardEditor: React.FC = () => {
       <h1 className="text-2xl font-bold mb-6">
         {isEditMode ? t('cardEditor.editTitle') : t('cardEditor.createTitle')}
       </h1>
+      
+      {/* Debug button - only in development */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="mb-8 p-4 border border-yellow-400 bg-yellow-50 rounded">
+          <button 
+            onClick={testFirestoreAccess}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white rounded px-4 py-2 mb-2"
+          >
+            Test Firebase Auth & Firestore Access
+          </button>
+          {debugInfo && (
+            <pre className="whitespace-pre-wrap text-sm bg-gray-800 text-white p-3 rounded mt-2 max-h-60 overflow-auto">
+              {debugInfo}
+            </pre>
+          )}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Photo upload section */}

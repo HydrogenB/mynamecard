@@ -5,7 +5,7 @@ import { Card } from '../db/db';
 import LanguageSwitch from '../components/LanguageSwitch';
 import PricingModal from '../components/PricingModal';
 import QRModal from '../components/QRModal';
-import FirebaseNotice from '../components/FirebaseNotice';
+import FirebaseDebugger from '../components/FirebaseDebugger';
 import { useAuth } from '../contexts/AuthContext';
 import { cardService } from '../services/cardService';
 import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
@@ -131,9 +131,7 @@ const Dashboard: React.FC = () => {
       });
     }
   };  return (
-    <div className="container-card min-h-screen py-8">      {/* Firebase Notice Component */}
-      <FirebaseNotice />
-      
+    <div className="container-card min-h-screen py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <LanguageSwitch />
