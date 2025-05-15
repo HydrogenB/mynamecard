@@ -5,6 +5,7 @@ import PublicCard from './pages/PublicCard'
 import SignIn from './pages/SignIn'
 import UserProfile from './pages/UserProfile'
 import NotFound from './pages/NotFound'
+import Onboarding from './pages/Onboarding'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { AuthProvider } from './contexts/AuthContext'
 import ServiceInitializer from './components/ServiceInitializer'
@@ -41,14 +42,14 @@ function App() {
             <PrivateRoute>
               <CardEditor />
             </PrivateRoute>
-          } />
-          <Route path="/profile" element={
+          } />          <Route path="/profile" element={
             <PrivateRoute>
               <UserProfile />
             </PrivateRoute>
           } />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/:slug" element={<PublicCard />} />
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Onboarding />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

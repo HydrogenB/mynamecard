@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import firebaseAnalyticsService from '../services/firebaseAnalyticsService';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import cardAPI from '../services/cardAPI';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Add a debug helper function 
 const logDebugInfo = (title: string, data: any) => {
@@ -26,6 +27,9 @@ const logDebugInfo = (title: string, data: any) => {
   }
 };
 
+// Define the different steps in our editor
+type EditorStep = 'appearance' | 'personal' | 'contact' | 'address' | 'additional';
+
 const CardEditor: React.FC = () => {  
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -36,6 +40,24 @@ const CardEditor: React.FC = () => {
   const [photoData, setPhotoData] = useState<string | undefined>(undefined);
   // Add debug state
   const [debugInfo, setDebugInfo] = useState<string>('');
+  
+  // Mobile wizard step state
+  const [currentStep, setCurrentStep] = useState<EditorStep>('appearance');
+  const [isMobileView, setIsMobileView] = useState<boolean>(window.innerWidth < 768);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  
+  // Track window resize for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
@@ -95,7 +117,50 @@ const CardEditor: React.FC = () => {
       const autoSlug = generateSlug(firstName, lastName);
       setValue('slug', autoSlug);
     }
-  }, [firstName, lastName, setValue, isEditMode]);  const onSubmit = async (data: CardFormData) => {
+  }, [firstName, lastName, setValue, isEditMode]);  // Function to move to next step in the mobile wizard
+  const goToNextStep = () => {
+    switch (currentStep) {
+      case 'appearance':
+        setCurrentStep('personal');
+        break;
+      case 'personal':
+        setCurrentStep('contact');
+        break;
+      case 'contact':
+        setCurrentStep('address');
+        break;
+      case 'address':
+        setCurrentStep('additional');
+        break;
+      case 'additional':
+        // On the last step, submit the form
+        formRef.current?.dispatchEvent(
+          new Event('submit', { cancelable: true, bubbles: true })
+        );
+        break;
+    }
+  };
+  
+  // Function to move to previous step in the mobile wizard
+  const goToPrevStep = () => {
+    switch (currentStep) {
+      case 'personal':
+        setCurrentStep('appearance');
+        break;
+      case 'contact':
+        setCurrentStep('personal');
+        break;
+      case 'address':
+        setCurrentStep('contact');
+        break;
+      case 'additional':
+        setCurrentStep('address');
+        break;
+    }
+  };
+  
+  const onSubmit = async (data: CardFormData) => {
+    setIsSubmitting(true);
     try {
       if (!user) {
         alert(t('errors.loginRequired'));
@@ -236,8 +301,8 @@ const CardEditor: React.FC = () => {
         } catch (err) {
           console.error('Failed to update server cache:', err);
         }
-      }        navigate('/dashboard');    } catch (error: any) {
-      console.error('Error saving card:', error);
+      }        navigate('/dashboard');    } catch (error: any) {      console.error('Error saving card:', error);
+      setIsSubmitting(false);
         // Check for specific Firebase permission errors
       if (error?.code === 'permission-denied') {
         console.error('Firebase permission denied error:', error);
@@ -387,59 +452,65 @@ const CardEditor: React.FC = () => {
         </div>
       </div>
     );
-  }
-  return (
-    <div className="container-card py-8">
-      <h1 className="text-2xl font-bold mb-6">
-        {isEditMode ? t('cardEditor.editTitle') : t('cardEditor.createTitle')}
-      </h1>
-      
-      {/* Auth Notice - show for all users */}
-      <AuthNotice />
-      
-      {/* Debug button - only in development */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="mb-8 p-4 border border-yellow-400 bg-yellow-50 rounded">
-          <button
-            onClick={testFirestoreAccess}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white rounded px-4 py-2 mb-2"
+  }  // Mobile step indicator component
+  const StepIndicator = () => {
+    const steps: EditorStep[] = ['appearance', 'personal', 'contact', 'address', 'additional'];
+    
+    return (
+      <div className="flex justify-center items-center space-x-2 my-6">
+        {steps.map((step, index) => (
+          <div 
+            key={step} 
+            className={`flex flex-col items-center ${index > 0 ? 'ml-1' : ''}`}
+            onClick={() => setCurrentStep(step)}
           >
-            Test Firebase Auth & API Access
-          </button>
-          {debugInfo && (
-            <pre className="whitespace-pre-wrap text-sm bg-gray-800 text-white p-3 rounded mt-2 max-h-60 overflow-auto">
-              {debugInfo}
-            </pre>
-          )}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Photo upload section */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="font-medium mb-3">{t('cardEditor.appearance')}</h2>          <ImageUploader
+            <div className={`
+              h-3 w-3 rounded-full transition-all duration-300
+              ${currentStep === step 
+                ? 'bg-primary-600 scale-125' 
+                : steps.indexOf(currentStep) > index 
+                  ? 'bg-primary-400'
+                  : 'bg-gray-300'
+              }
+            `}></div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
+  // Step content with animation
+  const StepContent = ({ step, isActive }: { step: EditorStep, isActive: boolean }) => {
+    const content = {
+      appearance: (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('cardEditor.appearance')}</h2>
+          <ImageUploader
             initialImage={photoData}
             onImageUpload={(dataUrl) => setPhotoData(dataUrl)}
           />
         </div>
-        
-        {/* Personal information */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="font-medium mb-3">{t('cardEditor.personalInfo')}</h2>
+      ),
+      personal: (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('cardEditor.personalInfo')}</h2>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.firstName')}
+                  {t('form.firstName')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   {...register('firstName')}
-                  className="w-full border border-gray-300 rounded-md p-2"
+                  className={`w-full border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition`}
                   placeholder={t('form.firstName')}
                 />
                 {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-xs mt-2 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {t(errors.firstName.message as string)}
                   </p>
                 )}
@@ -447,15 +518,18 @@ const CardEditor: React.FC = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.lastName')}
+                  {t('form.lastName')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   {...register('lastName')}
-                  className="w-full border border-gray-300 rounded-md p-2"
+                  className={`w-full border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition`}
                   placeholder={t('form.lastName')}
                 />
                 {errors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-xs mt-2 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {t(errors.lastName.message as string)}
                   </p>
                 )}

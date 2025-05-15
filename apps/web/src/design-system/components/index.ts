@@ -7,3 +7,8 @@ export * from './Badge';
 export * from './Layout';
 export * from './StatusIndicator';
 export * from './QRCode';
+export * from './GradientBanner';
+export * from './AnimatedCard';
+export * from './FeatureCard';
+export * from './FloatingElement';
+export * from './EnhancedStepper';
