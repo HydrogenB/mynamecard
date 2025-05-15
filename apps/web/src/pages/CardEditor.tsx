@@ -100,17 +100,47 @@ const CardEditor: React.FC = () => {
         alert(t('errors.loginRequired'));
         navigate('/login');
         return;
-      }
-
-      console.log("Current auth user:", user);
+      }      console.log("Current auth user:", user);
       
-      // Force update the user profile before creating a card to ensure it exists
+      // Import and use authHelper
       try {
+        // Import the authHelper
+        const { default: authHelper } = await import('../utils/authHelper');
+        
+        // Fix system configuration first
+        console.log("Fixing system configuration...");
+        await authHelper.fixSystemConfig();
+        
+        // Fix user profile to ensure it has all required fields
+        console.log("Fixing user profile if needed...");
+        await authHelper.fixUserProfile();
+        
+        // Force refresh token to ensure it has latest claims
+        console.log("Refreshing authentication token...");
+        await authHelper.forceTokenRefresh();
+        
+        // Force update the user profile before creating a card to ensure it exists
         const profile = await ensureUserProfile(user);
         console.log("Ensured user profile:", profile);
+        
+        // Wait longer to ensure Firebase security rules are updated with the new profile
+        console.log("Waiting for profile propagation...");
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased to 2 seconds
+        console.log("Continuing with card creation after delay");
+        
+        // Add additional check for card limits
+        const cardLimits = await userService.getUserCardLimits(user.uid);
+        console.log("Current card limits:", cardLimits);
+        
+        if (cardLimits && cardLimits.cardsCreated >= cardLimits.cardLimit) {
+          alert(t('errors.cardLimitReached'));
+          navigate('/dashboard');
+          return;
+        }
       } catch (profileError) {
         console.error("Failed to ensure user profile:", profileError);
-        // Continue anyway - the card creation will create a profile if needed
+        alert(t('errors.profileCreationFailed'));
+        return; // Don't continue if profile creation failed
       }
 
       // Include photo in the data if it exists and ensure address fields are valid
@@ -206,7 +236,20 @@ const CardEditor: React.FC = () => {
         // Check for specific Firebase permission errors
       if (error?.code === 'permission-denied') {
         console.error('Firebase permission denied error:', error);
-        alert(`${t('errors.saveCardFailed')}: Missing or insufficient permissions. This could be due to your user profile not being fully initialized. Please try again in a few moments, or try logging out and back in.`);
+        
+        // Try to automatically fix permission issues
+        try {
+          const { default: authHelper } = await import('../utils/authHelper');
+          
+          // Fix the profile and refresh token
+          await authHelper.fixUserProfile();
+          await authHelper.forceTokenRefresh();
+          
+          alert(`${t('errors.saveCardFailed')}: Missing or insufficient permissions. We've attempted to fix the issue. Please try again or try logging out and back in.`);
+        } catch (fixError) {
+          console.error('Failed to auto-fix permission issue:', fixError);
+          alert(`${t('errors.saveCardFailed')}: Missing or insufficient permissions. Please try logging out and back in.`);
+        }
       } 
       // Check for invalid document reference errors
       else if (error?.message?.includes('invalid document reference') || error?.message?.includes('Invalid document reference')) {
@@ -214,8 +257,11 @@ const CardEditor: React.FC = () => {
         
         // Try to create/update the user profile and retry
         try {
-          const profile = await ensureUserProfile(user);
-          console.log('User profile created after error:', profile);
+          const { default: authHelper } = await import('../utils/authHelper');
+          await authHelper.fixUserProfile();
+          await authHelper.forceTokenRefresh();
+          
+          console.log('User profile fixed after error');
           alert(`${t('errors.saveCardFailed')}: We've updated your user profile. Please try saving the card again.`);
         } catch (profileError) {
           console.error('Failed to create user profile after invalid document error:', profileError);

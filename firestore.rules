@@ -32,9 +32,7 @@ service cloud.firestore {
       allow read: if resource == null || resource.data.active == true;
       
       // Allow read access for user's own cards regardless of active status
-      allow read: if resource != null && isOwner(resource.data.userId);
-      
-      // Allow create for authenticated users if they haven't reached their limit
+      allow read: if resource != null && isOwner(resource.data.userId);      // Allow create for authenticated users if they haven't reached their limit
       allow create: if isAuthenticated() && 
                     request.resource.data.userId == request.auth.uid &&
                     canCreateCard(request.auth.uid);

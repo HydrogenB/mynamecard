@@ -10,6 +10,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import ServiceInitializer from './components/ServiceInitializer'
 import Navigation from './components/Navigation'
 import PrivateRoute from './components/PrivateRoute'
+import FirebaseAuthDebugger from './components/FirebaseAuthDebugger'
 
 function App() {
   return (
@@ -20,6 +21,9 @@ function App() {
         
         {/* Navigation */}
         <Navigation />
+        
+        {/* Firebase Auth Debugger (only in development) */}
+        {process.env.NODE_ENV !== 'production' && <FirebaseAuthDebugger />}
         
         <Routes>
           <Route path="/signin" element={<SignIn />} />

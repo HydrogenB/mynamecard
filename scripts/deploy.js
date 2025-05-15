@@ -12,11 +12,11 @@ const config = {
   // Set to true to deploy Firestore rules and indexes
   deployFirestore: true,
   // Set to true to initialize Firestore collections (only needed once per project)
-  initializeFirestore: false,
+  initializeFirestore: true,
   // Set to true to migrate data from realtime database to Firestore (if needed)
   migrateData: false,
   // Set to true to trigger the initializeCardLimits function after deployment
-  setupCardLimits: false
+  setupCardLimits: true
 };
 
 /**
