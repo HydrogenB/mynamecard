@@ -20,14 +20,12 @@ const cardAPI = {
       
       // Ensure user ID is set
       cardData.userId = auth.currentUser.uid;
+        // Import the cloud functions service for proper server-side implementation
+      const { cloudFunctionsService } = await import('./cloudFunctionsService');
       
-      // Import the API proxy service (development mode)
-      // This will be replaced with cloudFunctionsService in production
-      const { default: apiProxyService } = await import('./apiProxyService');
-      
-      // Use the API proxy service to create card
-      console.log('Creating card via API');
-      const result = await apiProxyService.createCard(cardData);
+      // Use the cloud functions service to create card
+      console.log('Creating card via Cloud Functions API');
+      const result = await cloudFunctionsService.createCard(cardData);
       
       return result;
     } catch (error: any) {
@@ -42,9 +40,9 @@ const cardAPI = {
    * @returns A promise with the card or null
    */  async getCardById(cardId: string): Promise<Card | null> {
     try {
-      // Import the API proxy service
-      const { default: apiProxyService } = await import('./apiProxyService');
-      return await apiProxyService.getCardById(cardId);
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
+      return await cloudFunctionsService.getCardById(cardId);
     } catch (error: any) {
       console.error('Error getting card by ID:', error);
       return null;
@@ -57,9 +55,9 @@ const cardAPI = {
    * @returns A promise with the card or null
    */  async getCardBySlug(slug: string): Promise<Card | null> {
     try {
-      // Import the API proxy service
-      const { default: apiProxyService } = await import('./apiProxyService');
-      return await apiProxyService.getCardBySlug(slug);
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
+      return await cloudFunctionsService.getCardBySlug(slug);
     } catch (error: any) {
       console.error('Error getting card by slug:', error);
       return null;
@@ -69,15 +67,15 @@ const cardAPI = {
    * Get all cards for a user
    * @param userId The ID of the user
    * @returns A promise with an array of cards
-   */
-  async getUserCards(userId: string): Promise<Card[]> {
-    try {      // Import the API proxy service
-      const { default: apiProxyService } = await import('./apiProxyService');
+   */  async getUserCards(userId: string): Promise<Card[]> {
+    try {
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
       
       // Log the user ID for debugging purposes
       console.log(`Fetching cards for user ${userId}`);
       
-      return await apiProxyService.getUserCards(userId);
+      return await cloudFunctionsService.getUserCards(userId);
     } catch (error: any) {
       console.error('Error getting user cards:', error);
       return [];
@@ -91,10 +89,10 @@ const cardAPI = {
    * @returns A promise that resolves when the card is updated
    */  async updateCard(cardId: string, cardData: Partial<Card>): Promise<void> {
     try {
-      // Import the API proxy service
-      const { default: apiProxyService } = await import('./apiProxyService');
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
       console.log(`Updating card ID ${cardId} with data:`, cardData);
-      await apiProxyService.updateCard(cardId, cardData);
+      await cloudFunctionsService.updateCard(cardId, cardData);
     } catch (error: any) {
       console.error('Error updating card:', error);
       throw new Error(`Failed to update card: ${error.message}`);
@@ -106,11 +104,11 @@ const cardAPI = {
    * @param cardId The ID of the card to toggle
    * @param active The new active status
    * @returns A promise that resolves when the card active status is toggled
-   */
-  async toggleCardActive(cardId: string, active: boolean): Promise<void> {
+   */  async toggleCardActive(cardId: string, active: boolean): Promise<void> {
     try {
-      // For now, just update the card with the new active status
-      await this.updateCard(cardId, { active });
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
+      await cloudFunctionsService.toggleCardActive(cardId, active);
     } catch (error: any) {
       console.error('Error toggling card active status:', error);
       throw new Error(`Failed to toggle card active status: ${error.message}`);
@@ -123,10 +121,10 @@ const cardAPI = {
    * @returns A promise that resolves when the card is deleted
    */  async deleteCard(cardId: string): Promise<void> {
     try {
-      // Import the API proxy service
-      const { default: apiProxyService } = await import('./apiProxyService');
+      // Import the cloud functions service
+      const { default: cloudFunctionsService } = await import('./cloudFunctionsService');
       console.log(`Deleting card with ID: ${cardId}`);
-      await apiProxyService.deleteCard(cardId);
+      await cloudFunctionsService.deleteCard(cardId);
     } catch (error: any) {
       console.error('Error deleting card:', error);
       throw new Error(`Failed to delete card: ${error.message}`);

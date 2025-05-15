@@ -16,14 +16,17 @@ const AuthNotice: React.FC = () => {
         <div className="ml-3">
           <h3 className="text-sm font-medium text-green-800">
             Authentication Update
-          </h3>          <div className="mt-2 text-sm text-green-700">
-            <p>
-              We've updated our card creation system to improve security and reliability using a new API-based architecture. 
+          </h3>          <div className="mt-2 text-sm text-green-700">            <p>
+              We've enhanced our card management system with secure Cloud Functions. 
               New users can now create cards without encountering permission issues.
             </p>
             <p className="mt-2">
-              Instead of your browser directly accessing the database, requests are now handled through a secure API, 
-              ensuring consistent permissions and better performance.
+              Instead of your browser directly accessing the database, requests are now handled through secure
+              Firebase Cloud Functions, ensuring consistent permissions and improved security.
+            </p>
+            <p className="mt-2 text-xs">
+              Note: For full functionality, please make sure you're using a Firebase Blaze plan. 
+              The free Spark plan has limitations on outbound network requests from Cloud Functions.
             </p>
             <p className="mt-2">
               If you encounter any issues, please try refreshing your browser or 

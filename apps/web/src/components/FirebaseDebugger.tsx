@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { firestore, auth } from '../config/firebase';
+import { auth } from '../config/firebase';
 
 const FirebaseDebugger: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<string>('');
@@ -9,7 +8,7 @@ const FirebaseDebugger: React.FC = () => {
   const testFirestoreAccess = async () => {
     try {
       setIsLoading(true);
-      setDebugInfo('Testing Firestore access...');
+      setDebugInfo('Testing API-based access...');
 
       if (!auth.currentUser) {
         setDebugInfo('Error: Not authenticated! Please log in first.');
@@ -19,14 +18,17 @@ const FirebaseDebugger: React.FC = () => {
       // Log current authentication state
       setDebugInfo(`Current user: ${auth.currentUser.email} (${auth.currentUser.uid})`);
       
-      // Test if we can write to a test collection directly
-      const testDocRef = doc(collection(firestore, 'debug_tests'));
-      await setDoc(testDocRef, {
-        userId: auth.currentUser.uid,
-        email: auth.currentUser.email,
-        timestamp: serverTimestamp(),
-        testValue: 'This is a test write'
-      });
+      // Import cardAPI and test the API-based approach
+      const { default: cardAPI } = await import('../services/cardAPI');
+      
+      // Try to get the user's cards via the API
+      try {
+        const userCards = await cardAPI.getUserCards(auth.currentUser.uid);
+        setDebugInfo(prev => `${prev}\n✅ API access successful! Found ${userCards.length} cards.`);
+      } catch (error) {
+        setDebugInfo(prev => `${prev}\n❌ Error accessing API: ${error.message}`);
+        throw error;
+      }
       
       // If we get here, write was successful
       setDebugInfo(prev => `${prev}\n✅ Write to Firestore successful!`);
@@ -148,7 +150,7 @@ const FirebaseDebugger: React.FC = () => {
           disabled={isLoading}
           className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded px-4 py-2"
         >
-          {isLoading ? 'Testing...' : 'Test Auth & Firestore'}
+          {isLoading ? 'Testing...' : 'Test Auth & API Access'}
         </button>
         
         <button 

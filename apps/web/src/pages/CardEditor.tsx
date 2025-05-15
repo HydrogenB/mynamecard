@@ -300,13 +300,11 @@ const CardEditor: React.FC = () => {
       }
     }
   };
-
-  // Add a debug function to test direct Firestore access
+  // Add a debug function to test API-based access
   const testFirestoreAccess = async () => {
     try {
-      setDebugInfo('Testing Firestore access...');
-      const { firestore, auth } = await import('../config/firebase');
-      const { collection, doc, setDoc, getDoc, serverTimestamp } = await import('firebase/firestore');
+      setDebugInfo('Testing API-based access...');
+      const { auth } = await import('../config/firebase');
 
       if (!auth.currentUser) {
         setDebugInfo('Error: Not authenticated! Please log in first.');
@@ -316,14 +314,17 @@ const CardEditor: React.FC = () => {
       // Log current authentication state
       setDebugInfo(`Current user: ${auth.currentUser.email} (${auth.currentUser.uid})`);
       
-      // Test if we can write to a test collection directly
-      const testDocRef = doc(collection(firestore, 'debug_tests'));
-      await setDoc(testDocRef, {
-        userId: auth.currentUser.uid,
-        email: auth.currentUser.email,
-        timestamp: serverTimestamp(),
-        testValue: 'This is a test write'
-      });
+      // Import cardAPI and test the API-based approach
+      const { default: cardAPI } = await import('../services/cardAPI');
+      
+      // Try to get the user's cards via the API
+      try {
+        const userCards = await cardAPI.getUserCards(auth.currentUser.uid);
+        setDebugInfo(prev => `${prev}\n✅ API access successful! Found ${userCards.length} cards.`);
+      } catch (error) {
+        setDebugInfo(prev => `${prev}\n❌ Error accessing API: ${error.message}`);
+        throw error;
+      }
       
       // If we get here, write was successful
       setDebugInfo(prev => `${prev}\n✅ Write to Firestore successful!`);
@@ -403,7 +404,7 @@ const CardEditor: React.FC = () => {
             onClick={testFirestoreAccess}
             className="bg-yellow-500 hover:bg-yellow-600 text-white rounded px-4 py-2 mb-2"
           >
-            Test Firebase Auth & Firestore Access
+            Test Firebase Auth & API Access
           </button>
           {debugInfo && (
             <pre className="whitespace-pre-wrap text-sm bg-gray-800 text-white p-3 rounded mt-2 max-h-60 overflow-auto">

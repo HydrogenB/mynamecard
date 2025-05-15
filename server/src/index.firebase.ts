@@ -11,6 +11,11 @@ import { CardData, renderCardHTML } from './services/ssrService';
 export { upgradePlan } from './functions/upgradePlan';
 export { initializeCardLimits } from './functions/initializeCardLimits';
 export { createCard } from './functions/createCard';
+export { getUserCards } from './functions/getUserCards';
+export { getCardById } from './functions/getCardById';
+export { getCardBySlug } from './functions/getCardBySlug';
+export { updateCard } from './functions/updateCard';
+export { deleteCard } from './functions/deleteCard';
 
 // Add these interfaces to support Firebase functionality
 // Used to extend CardData with Firebase-specific fields
