@@ -12,6 +12,7 @@
    - simpleCardService.ts: Card data management
 4. Updated all components to use the simplified services
 5. Removed Firebase configuration files
+6. Removed all migration scripts and code for a fresh start
 
 ## File Changes
 

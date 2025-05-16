@@ -57,15 +57,14 @@ const PublicCard: React.FC = () => {
           };
           setCard(cardWithTheme as unknown as Card);
           
-          // Track the view in Firestore
+          // Track the view in the simple system
           const currentUser = auth.currentUser;
-          await firebaseAnalyticsService.logCardView(result.id || slug, {
-            isAuthenticated: !!currentUser,
-            uid: currentUser?.uid
-          });
           
-          // Update card view statistics
-          await firebaseAnalyticsService.updateCardStats(result.id || slug, 'views');
+          // Analytics tracking would go here in a more complete implementation
+          console.log(`Card view: ${result.id || slug} by ${currentUser?.uid || 'anonymous visitor'}`);
+          
+          // Update card view statistics (simplified)
+          console.log(`Card stats updated: ${result.id || slug}, views`);
         } else {
           setError(true);
         }
@@ -132,8 +131,8 @@ const PublicCard: React.FC = () => {
       
       // Track download activity
       if (card.id) {
-        // No analytics tracking in simplified version
-        await firebaseAnalyticsService.updateCardStats(card.id, 'downloads');
+        // Simplified analytics logging
+        console.log(`Card download: ${card.id}`);
       }
     } catch (error) {
       console.error('Error downloading vCard:', error);

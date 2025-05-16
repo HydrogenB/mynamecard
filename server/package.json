@@ -1,27 +1,19 @@
 {
   "name": "server",
   "version": "0.1.0",
-  "private": true,  
-  "scripts": {
+  "private": true,    "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "build:firebase": "tsc -p tsconfig.firebase.json && echo 'Firebase functions build completed'",
     "start": "node dist/index.js",
-    "test": "vitest run",
-    "deploy": "firebase deploy --only functions",
-    "deploy:functions": "npm run build:firebase && firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "test": "vitest run"
   },
   "engines": {
     "node": "18"
-  },
-  "main": "lib/index.js",
+  },  "main": "dist/index.js",  
   "dependencies": {
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "firebase-admin": "^11.11.0",
-    "firebase-functions": "^4.3.1",
     "node-fetch": "^3.3.2",
     "vcard-creator": "^0.6.0",
     "ws": "^8.13.0"

@@ -1,6 +1,0 @@
-// This file was previously used for Firebase configuration but is no longer needed.
-// It has been kept as a reference but has no functionality in the simplified app.
-
-// The application now uses a simplified authentication system that only allows:
-// Username: test
-// Password: test

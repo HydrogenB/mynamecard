@@ -1,31 +1,29 @@
 # Smart Name Card
 
-A digital business card application that allows users to create, manage, and share their digital business cards with vCard download functionality and real-time analytics. The application is powered by Firebase services including Firestore for data persistence and Realtime Database for analytics features.
+A digital business card application that allows users to create, manage, and share their digital business cards with vCard download functionality. The application uses a simplified authentication system and in-memory storage for easy setup and development.
 
 ## Current Status
 
-The project has been successfully migrated from IndexedDB to Firebase services with enhanced security and user management:
+This project has been completely refactored to use a simplified architecture without external dependencies:
 
-- ✅ User authentication implemented with Firebase Auth
-- ✅ Proper user card limit enforcement (2 cards max for free users, configurable server-side)
-- ✅ Enhanced security with Firestore rules for user ownership validation
-- ✅ Transactional database operations for data consistency
-- ✅ Complete Firestore integration for card data storage, analytics and management
-- ✅ Real-time status tracking with Firestore
-- ✅ Offline persistence enabled with Firestore
-- ✅ Admin configuration for card limits by plan type
-- ✅ Environment configuration for Firebase API keys
-- ✅ Server-side functions and analytics tracking
-- 🚧 CI/CD pipeline setup in progress
+- ✅ Simple authentication system (username: "test" / password: "test")
+- ✅ In-memory card storage for easy development
+- ✅ Basic user profile management
+- ✅ No external dependencies or API keys required
+- ✅ Clean codebase with fresh start approach
+- ✅ Simplified data services
+- ✅ Card management functionality
+- ✅ Easy to understand architecture
+- ✅ Development-ready environment
 
 ## Architecture Overview
 
 ### Tech Stack
 
 - **Frontend**: React with TypeScript, TailwindCSS, Vite
-- **Cloud Database**: Firebase Firestore
-- **Authentication**: Firebase Authentication
-- **Server**: Express.js & Firebase Functions (for optional server-side features)
+- **Data Storage**: In-memory JavaScript objects
+- **Authentication**: Simple in-memory auth service (username: test, password: test)
+- **Server**: Express.js (for optional server-side features)
 - **Internationalization**: i18next
 - **Data Validation**: Zod (schemas)
 - **Build Tools**: Vite, PostCSS
@@ -39,36 +37,28 @@ This project is a monorepo containing:
 
 ## API Flow
 
-The application follows a comprehensive API flow that integrates Firebase services:
+The application uses a simplified in-memory service architecture:
 
-1. **User Login**: Authentication using Firebase Auth SDK
-2. **Create Card**: Creates a card document in Firestore with user ownership
-3. **Edit Card**: Updates existing card documents with verification of ownership
-4. **View Public Card**: Retrieves card by slug with analytics tracking
-5. **Log View Analytics**: Records view events in Firestore
-6. **Download vCard**: Generates and provides .vcf file with analytics tracking
-7. **Share Card**: Tracks sharing events in Firestore
-8. **Track User Status**: Updates user's last seen timestamp
-9. **Enforce Card Limit**: Prevents users from exceeding their plan limit
-10. **Upgrade Plan**: Allows users to upgrade to Pro plan for additional cards
+1. **User Login**: Simple authentication with fixed credentials (test/test)
+2. **Create Card**: Creates a card in memory with user ownership
+3. **Edit Card**: Updates existing cards with verification of ownership
+4. **View Public Card**: Retrieves card by slug from memory
+5. **Download vCard**: Generates and provides .vcf file for contacts
+6. **Share Card**: Provides sharing functionality
+7. **User Profile**: Basic profile management
+8. **Card Limits**: Enforces usage limits based on plan type
 
 ## Development Setup
 
-### Environment Variables
+### Simplified Configuration
 
-The project requires certain environment variables for Firebase configuration:
+This project uses a simplified architecture that doesn't require any API keys or external services:
 
-1. Create or modify `.env`, `.env.development`, and `.env.production` files with your Firebase credentials:
+1. No environment variables are needed for development
+2. The authentication system uses a fixed username ("test") and password ("test")
+3. All data is stored in-memory during the session
 
-```bash
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_API_URL=https://your-api-url
-VITE_APP_ENV=development or production
-```
-
-2. These environment variables are used in the Firebase configuration (`src/config/firebase.ts`)
-
-> **Important Note**: As of May 12, 2025, the Firebase API key is hard-coded directly in the configuration (`src/config/firebase.ts`) to avoid authentication errors with environment variables not loading properly. This provides a reliable fallback but should be reviewed for production security.
+> **Important Note**: This application uses a standalone authentication system with in-memory storage. No database setup is required!
 
 ### Prerequisites
 
@@ -85,74 +75,75 @@ npm install
 ### Running the Development Server
 
 ```bash
-# Run both web app and server in development mode
+# Run the web app in development mode
+cd apps/web && npm run dev
+```
+
+This will start:
+- The web app at http://localhost:5173
+
+### Authentication
+
+To login to the application:
+- Username: `test`
+- Password: `test`
+
+## Building for Production
+
+```bash
+# Build the web app
+cd apps/web && npm run build
+```
+
+The built files will be available in the `apps/web/dist` directory.
+```
+
+## Deployment
+
+This application can be deployed to any standard web hosting service that supports static sites and Node.js servers.
+
+### Building for Deployment
+
+```bash
+# Build the entire application
+npm run build
+```
+
+This will:
+1. Build the web frontend (in `apps/web/dist`)
+2. Build the server (in `server/dist`)
+
+### Deployment Options
+
+You can deploy the application to:
+
+1. **Static hosting** (web frontend only)
+   - Upload the contents of `apps/web/dist` to any static hosting service
+   - Note: Without the backend, some features like vCard generation may be limited
+
+2. **Full-stack hosting** (recommended)
+   - Deploy both the web frontend and the server to a platform that supports Node.js
+   - Configure the server to serve the static files from the web frontend
+
+### Testing Your Deployment
+
+After deployment, verify that:
+1. You can access the application
+2. You can log in with the test credentials
+3. You can create and view cards
+
+## Running the Complete Stack Locally
+
+To run both the frontend and backend locally:
+
+```bash
+# Start both the web frontend and server
 npm run dev
 ```
 
 This will start:
 - The web app at http://localhost:5173
 - The API server at http://localhost:3000
-
-## Building for Production
-
-```bash
-# Build both web and server
-npm run build:all
-
-# Build only server
-npm run build
-```
-
-## Firebase Deployment
-
-The application is configured to deploy to Firebase Hosting with an API-based architecture using Firebase Cloud Functions.
-
-### Prerequisites
-
-- Firebase CLI installed: `npm install -g firebase-tools`
-- Firebase account with Blaze (pay-as-you-go) plan enabled for Cloud Functions
-- Node.js 16+ installed
-
-### API-Based Deployment
-
-For Windows users, use one of these options:
-
-```bash
-# Option 1: Using PowerShell script (recommended for Windows 11)
-.\deploy-windows.ps1
-
-# Option 2: Using Batch file
-deploy-windows.bat
-
-# Option 3: Running the Node.js script directly
-node deploy-all.js
-```
-
-This will deploy:
-1. Firebase Cloud Functions (API backend)
-2. Firestore Rules 
-3. Firebase Hosting (web frontend)
-
-### Testing the Deployment
-
-After deployment, run the API verification tool:
-
-```bash
-node test-api.js
-```
-
-### Automated Deployment
-
-The project is set up with GitHub Actions for continuous deployment. Any push to the main branch will trigger a deployment to Firebase Hosting and Functions.
-
-## Firebase Emulator
-
-For local testing of Firebase hosting:
-
-```bash
-# Run Firebase emulator
-npm run emulate
-```
 
 This will build the app and start the Firebase emulator at http://localhost:5000
 

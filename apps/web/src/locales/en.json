@@ -98,16 +98,5 @@
     "signInInstead": "Sign in instead",
     "genericError": "Authentication failed. Please try again.",
     "signOut": "Sign out",
-    "profile": "Profile"
-  },
-  "migration": {
-    "notice": "You're now signed in to a cloud account!",
-    "explanation": "Would you like to migrate your locally stored name cards to your cloud account?",
-    "startButton": "Migrate my cards",
-    "inProgress": "Migrating...",
-    "complete": "Migration complete",
-    "error": "There was an error migrating your cards",
-    "tryAgain": "Please try again or contact support if the issue persists.",
-    "retry": "Try Again"
-  }
+    "profile": "Profile"  }
 }

@@ -187,11 +187,10 @@ const CardEditor: React.FC = () => {
         // Force update the user profile before creating a card to ensure it exists
         const profile = await ensureUserProfile(user);
         console.log("Ensured user profile:", profile);
-        
-        // Wait longer to ensure Firebase security rules are updated with the new profile
-        console.log("Waiting for profile propagation...");
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased to 2 seconds
-        console.log("Continuing with card creation after delay");
+          // Short delay for profile processing
+        console.log("Processing user profile...");
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+        console.log("Continuing with card creation after processing");
         
         // Add additional check for card limits
         const cardLimits = await userService.getUserCardLimits(user.uid);
@@ -247,9 +246,8 @@ const CardEditor: React.FC = () => {
           // Force create/update user profile before proceeding
           const profile = await ensureUserProfile(user);
           console.log('User profile verified or created:', profile);
-          
-          // Wait a moment to ensure Firebase security rules are updated with the new profile
-          await new Promise(resolve => setTimeout(resolve, 1000));
+            // Short delay for profile processing
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Double check if user can create a card
           const canCreate = await userService.canCreateCard(user.uid);
@@ -276,8 +274,7 @@ const CardEditor: React.FC = () => {
           }
           console.log('Card created successfully via API:', card.id);
         } catch (cardError: any) {
-          console.error('Detailed card creation error:', cardError);
-          // Enhanced error message with Firebase error code if available
+          console.error('Detailed card creation error:', cardError);          // Enhanced error message with error code if available
           const errorCode = cardError?.code ? ` (${cardError.code})` : '';
           throw new Error(`Failed to create card${errorCode}: ${cardError.message}`);
         }
@@ -294,10 +291,9 @@ const CardEditor: React.FC = () => {
           console.error('Failed to update server cache:', err);
         }
       }        navigate('/dashboard');    } catch (error: any) {      console.error('Error saving card:', error);
-      setIsSubmitting(false);
-        // Check for specific Firebase permission errors
+      setIsSubmitting(false);        // Check for specific permission errors
       if (error?.code === 'permission-denied') {
-        console.error('Firebase permission denied error:', error);
+        console.error('Permission denied error:', error);
         
         // Try to automatically fix permission issues
         try {
@@ -361,9 +357,9 @@ const CardEditor: React.FC = () => {
   const testFirestoreAccess = async () => {
     try {
       setDebugInfo('Testing API-based access...');
-      const { auth } = await import('../config/firebase');
+      const { simpleAuth } = await import('../config/simpleAuth');
 
-      if (!auth.currentUser) {
+      if (!simpleAuth.currentUser) {
         setDebugInfo('Error: Not authenticated! Please log in first.');
         return;
       }
